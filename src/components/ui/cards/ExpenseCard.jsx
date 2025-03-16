@@ -2,7 +2,7 @@ import React from 'react';
 
 const ExpenseCard = ({ expense }) => {
   return (
-    <div className="min-w-lg max-w-2xl bg-white p-4 rounded shadow-md hover:shadow-lg transition cursor-pointer">
+    <div className="min-w-sm max-w-2xl bg-white p-4 rounded shadow-md hover:shadow-lg transition cursor-pointer">
       <span className="text-white text-sm font-semibold bg-green-600 px-2 py-1 rounded mb-2 inline-block">
         Expense
       </span>

@@ -15,7 +15,7 @@ const ProjectCard = ({ project, userInfo }) => {
   },[])
   return (
     <div
-      className="relative min-w-lg max-w-2xl bg-white p-4 rounded shadow-md hover:shadow-lg transition cursor-pointer"
+      className="relative min-w-sm max-w-2xl bg-white p-4 rounded shadow-md hover:shadow-lg transition cursor-pointer"
       onClick={handleClick}
     >
       <div className={`absolute top-2 right-2 px-2 py-1 text-white text-xs font-semibold rounded ${bgColor}`}>

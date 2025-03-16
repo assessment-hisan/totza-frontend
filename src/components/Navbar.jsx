@@ -35,7 +35,7 @@ const Navbar = ({ userInfo }) => {
 
           {/* Dropdown Menu */}
           {dropdownOpen && (
-            <div className="absolute right-0 mt-2 w-48 bg-white border border-gray-200 rounded-md shadow-lg">
+            <div className="absolute z-30 right-0 mt-2 w-48 bg-white border border-gray-200 rounded-md shadow-lg">
               <div className="p-3 border-b text-gray-600">
                 <p>{userInfo.email}</p>
               </div>
