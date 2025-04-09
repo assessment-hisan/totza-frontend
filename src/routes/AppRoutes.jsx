@@ -1,24 +1,36 @@
 import React from 'react';
 import { Route, Routes } from 'react-router-dom';
-import Home from '../pages/Home';
-import CreateProject from '../pages/createProject';
-import ProjectDetails from '../pages/ProjectDetails';
+// import Home from '../pages/Home';
 import NotFound from '../pages/NotFound';
 import Login from "../pages/auth/login"
 import ChangePassword from '../pages/auth/changePassword';
+import Dashboard from '../pages/Dashboard';
+import CompanyTransactions from '../pages/CompanyTransactions';
+import PersonalTransactions from '../pages/PersonalTransactions';
+import Vendors from '../pages/Vendors';
+import Items from '../pages/Items';
+import Accounts from "../pages/Accounts"
+import Reports from '../pages/Reports';
+import Settings from '../pages/Settings';
+
 const AppRoutes = () => {
   return (
     <Routes>
-      <Route path='/login' element={<Login/>}/>
-      <Route path="/" element={<Home />} />
-      <Route path="/create-project" element={<CreateProject />} />
-      
-      <Route path="/project/:id" element={<ProjectDetails />} />
-      <Route path="/change-password" element={<ChangePassword/>}/>
+      <Route path='/login' element={<Login />} />
+      <Route path="/change-password" element={<ChangePassword />} />
       <Route path="*" element={<NotFound />} />
-
-
+      <Route path="/" element={<Dashboard />} />
+      <Route path="/company-transactions" element={<CompanyTransactions />} />
+      <Route path="/personal-transactions" element={<PersonalTransactions />} />
+      <Route path="/vendors" element={<Vendors />} />
+      <Route path="/items" element={<Items />} />
+      <Route path="/accounts" element={<Accounts />} />
+      <Route path="/reports" element={<Reports />} />
+      <Route path="/settings" element={<Settings />} />
     </Routes>
+
+
+
   );
 };
 

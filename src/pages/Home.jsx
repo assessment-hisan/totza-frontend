@@ -78,46 +78,11 @@ const Home = () => {
   return (
     <>
       <Navbar userInfo={userInfo} />
-      <div className="p-4 bg-gray-100 min-h-screen pb-36">
-        <div className="flex justify-between items-center mb-4">
-          <button onClick={toggleFilter} className="flex items-center gap-2 p-2 bg-white rounded shadow-md transition-transform hover:scale-105">
-            {filter === 'projects' ? (
-              <Briefcase className="text-blue-500" />
-            ) : (
-              <Wallet className="text-green-500" />
-            )}
-            <span className="font-semibold capitalize">{filter}</span>
-          </button>
-          <input
-            type="text"
-            placeholder="Search..."
-            className="p-2 border rounded"
-            value={search}
-            onChange={(e) => setSearch(e.target.value)}
-          />
-        </div>
-
-        <div className="flex flex-col justify-center items-center gap-3">
-          {filteredData.map((item) =>
-            filter === 'expenses' ? (
-              <ExpenseCard key={item.id} expense={item} />
-            ) : (
-              <ProjectCard key={item._id} project={item} />
-            )
-          )}
-        </div>
+      <div className='w-full h-screen '>
+          <div className='w-3xl h-20 px-5 rounded-full shadow-xl absolute bottom-30 bg-gray-600 z-20'>
+              
+          </div>
       </div>
-
-      <div className="fixed bottom-10 left-0 right-0 p-4 flex justify-center gap-20">
-        <button className="btn-primary" onClick={() => navigate('/create-project')}>
-          Create Project
-        </button>
-        <button className="btn-primary" onClick={handleAddExpenseClick}>
-          Add Expense
-        </button>
-      </div>
-
-      {showModal && <AddExpenseModal onClose={handleCloseModal} />}
     </>
   );
 };

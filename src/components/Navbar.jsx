@@ -1,28 +1,47 @@
 import { useState } from 'react';
 import { getInitials } from '../utils/helper';
 import { useNavigate } from 'react-router-dom';
+import { FaWallet } from 'react-icons/fa';
 
 const Navbar = ({ userInfo }) => {
   const [dropdownOpen, setDropdownOpen] = useState(false);
   const [loading, setLoading] = useState(false);
-  const navigate = useNavigate()
+  const navigate = useNavigate();
+
   const handleLogout = async () => {
-    setLoading(true); // Start loading
+    setLoading(true);
     localStorage.clear();
-    await new Promise((resolve) => setTimeout(resolve, 500)); // Simulate a slight delay (optional)
-    setLoading(false); // Stop loading
-    window.location.reload(); // Refresh the page
+    await new Promise((resolve) => setTimeout(resolve, 500));
+    setLoading(false);
+    window.location.reload();
   };
 
   const navigateToChangePassword = () => {
-    navigate("/change-password")
-  }
+    navigate('/change-password');
+  };
+
+  const goToPersonalTransactions = () => {
+    navigate('/personal-transactions');
+  };
+
   return (
-    <div className=" w-full flex justify-between items-center bg-white p-4 shadow-md rounded">
-      <h1 className="text-2xl font-semibold">Totza</h1>
+    <div className="w-full flex justify-between items-center bg-white p-4 shadow-md rounded">
+      <div className="flex items-center gap-6">
+        <h1 className="text-2xl font-semibold">Totza</h1>
+      </div>
+      <div className='flex  lg:gap-10'>
+        {/* Personal Transactions Link */}
+        <button
+          onClick={goToPersonalTransactions}
+          className="flex items-center gap-2 text-sm font-medium text-gray-700 hover:text-blue-600 transition"
+        >
+          <FaWallet className="text-lg" />
+          <span>Personal Transactions</span>
+        </button>
+
+        {/* User Info & Dropdown */}
       {userInfo && (
         <div className="relative">
-          {/* Profile Button */}
           <button
             className="flex items-center gap-2 text-gray-700 font-medium bg-gray-100 p-2 rounded-full hover:bg-gray-200 transition"
             onClick={() => setDropdownOpen(!dropdownOpen)}
@@ -33,7 +52,6 @@ const Navbar = ({ userInfo }) => {
             <span className="text-sm uppercase">{userInfo.fullName}</span>
           </button>
 
-          {/* Dropdown Menu */}
           {dropdownOpen && (
             <div className="absolute z-30 right-0 mt-2 w-48 bg-white border border-gray-200 rounded-md shadow-lg">
               <div className="p-3 border-b text-gray-600">
@@ -45,11 +63,10 @@ const Navbar = ({ userInfo }) => {
               >
                 Change Password
               </div>
-
               <button
-                className=" w-full text-left px-4 py-2 text-gray-700 hover:bg-gray-100 flex justify-center items-center gap-2"
+                className="w-full text-left px-4 py-2 text-gray-700 hover:bg-gray-100 flex justify-center items-center gap-2"
                 onClick={handleLogout}
-                disabled={loading} // Disable while loading
+                disabled={loading}
               >
                 {loading ? (
                   <svg
@@ -73,13 +90,14 @@ const Navbar = ({ userInfo }) => {
                     ></path>
                   </svg>
                 ) : (
-                  "Logout"
+                  'Logout'
                 )}
               </button>
             </div>
           )}
         </div>
       )}
+      </div>
     </div>
   );
 };
