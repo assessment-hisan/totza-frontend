@@ -106,7 +106,7 @@ const companyTransactions = [
     account: { name: 'Service Income' },
     vendor: { name: 'Client A' },
     files: [],
-    createdAt: '2024-04-05T11:45:00Z',
+    createdAt: '2024-04-08T11:45:00Z',
   }
 ];
 
@@ -149,7 +149,50 @@ const Dashboard = () => {
     <>
       <Navbar userInfo={userInfo} />
       <div className="p-6 space-y-6">
+        
+        <div className='flex  justify-between'>
         <h2 className="text-2xl font-bold">Dashboard</h2>
+         {/* Navigation Cards */}
+         <div className="flex flex-wrap items-center justify-center gap-10">
+          {[
+            {
+              path: '/vendors',
+              // title: 'Vendors',
+              // description: 'Manage all vendor details',
+              icon: <Users size={20} color="#2563EB" /> // Blue icon for Vendors
+            },
+            {
+              path: '/accounts',
+              // title: 'Accounts',
+              // description: 'Add or modify account categories',
+              icon: <Briefcase size={20} color="#10B981" /> // Green icon for Accounts
+            },
+            {
+              path: '/items',
+              // title: 'Items',
+              // description: 'Manage inventory items',
+              icon: <Package size={20} color="#F59E0B" /> // Orange icon for Items
+            },
+          ].map((card) => (
+            <div
+              key={card.path}
+              onClick={() => navigate(card.path)}
+              className="bg-gray-100 cursor-pointer  rounded-xl transition-transform transform hover:-translate-y-1 flex flex-col items-center text-center"
+            >
+              {/* Icon */}
+              <div className="bg-gray-300 rounded-full p-4">
+                {card.icon}
+              </div>
+
+              {/* Title */}
+              {/* <h3 className="text-xl font-bold mb-2">{card.title}</h3> */}
+
+              {/* Description */}
+              {/* <p className="text-sm text-gray-600">{card.description}</p> */}
+            </div>
+          ))}
+        </div>
+        </div>
 
         {/* Period Filter */}
         <div className="flex gap-2 mb-4">
@@ -181,7 +224,7 @@ const Dashboard = () => {
         </div>
 
         {/* Recent Transactions */}
-        <div className="bg-white p-4 rounded-lg shadow mb-6">
+        <div className="bg-white   rounded-lg shadow mb-6">
           <div className="flex justify-between items-center mb-2">
             <h3 className="text-lg font-semibold">Recent Transactions</h3>
             <Link to="/company-transactions" className="flex items-center text-blue-600 hover:underline">
@@ -191,46 +234,7 @@ const Dashboard = () => {
           <TransactionTable type="company" limit={3} transactions={filteredTransactions} />
         </div>
 
-        {/* Navigation Cards */}
-        <div className="flex flex-wrap items-center justify-center gap-10">
-          {[
-            {
-              path: '/vendors',
-              title: 'Vendors',
-              description: 'Manage all vendor details',
-              icon: <Users size={40} color="#2563EB" /> // Blue icon for Vendors
-            },
-            {
-              path: '/accounts',
-              title: 'Accounts',
-              description: 'Add or modify account categories',
-              icon: <Briefcase size={40} color="#10B981" /> // Green icon for Accounts
-            },
-            {
-              path: '/items',
-              title: 'Items',
-              description: 'Manage inventory items',
-              icon: <Package size={40} color="#F59E0B" /> // Orange icon for Items
-            },
-          ].map((card) => (
-            <div
-              key={card.path}
-              onClick={() => navigate(card.path)}
-              className="bg-white hover:bg-gray-100 cursor-pointer p-6 rounded-xl shadow-lg transition-transform transform hover:-translate-y-1 flex flex-col items-center text-center"
-            >
-              {/* Icon */}
-              <div className="bg-gray-300 rounded-full p-4 mb-4">
-                {card.icon}
-              </div>
-
-              {/* Title */}
-              <h3 className="text-xl font-bold mb-2">{card.title}</h3>
-
-              {/* Description */}
-              <p className="text-sm text-gray-600">{card.description}</p>
-            </div>
-          ))}
-        </div>
+       
 
 
 

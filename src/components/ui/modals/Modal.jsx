@@ -1,9 +1,11 @@
 import React from 'react';
 import { X } from 'lucide-react';
 
-const Modal = ({ onClose, title, children }) => {
+const Modal = ({ isOpen, onClose, title, children }) => {
+  if (!isOpen) return null; // 🔥 This line is crucial
+
   return (
-    <div className="fixed top-0 pt-15 left-0 inset-0 z-50 flex items-center justify-center bg-black/80 backdrop-blur-sm">
+    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/80 backdrop-blur-sm">
       <div className="bg-white rounded-2xl shadow-lg w-full max-w-md mx-4 p-6 relative md:max-w-lg lg:max-w-2xl">
         <button
           onClick={onClose}

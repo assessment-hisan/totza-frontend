@@ -14,7 +14,102 @@ const CompanyTransactions = () => {
   const location = useLocation();
   const navigate = useNavigate();
 
-  const companyTransactions = [{ _id: '10', type: 'credit', amount: 7000, purpose: 'Advance payment from client', account: { name: 'Client Payment' }, vendor: { name: 'ABC Traders' }, files: ['receipt1.pdf'], createdAt: '2025-04-08T10:00:00Z', }, { _id: '20', type: 'debit', amount: 1200, purpose: 'Labour charges', account: { name: 'Labour Expenses' }, vendor: { name: 'XYZ Workers' }, files: [], createdAt: '2025-04-07T14:30:00Z', }, { _id: '30', type: 'debit', amount: 300, purpose: 'Stationery purchase', account: { name: 'Office Supplies' }, vendor: { name: 'Stationery Hub' }, files: ['invoice.pdf'], createdAt: '2025-04-06T09:15:00Z', }, { _id: '1', type: 'credit', amount: 5000, purpose: 'Advance payment from client', account: { name: 'Client Payment' }, vendor: { name: 'ABC Traders' }, files: ['receipt1.pdf'], createdAt: '2025-04-08T10:00:00Z', }, { _id: '2', type: 'debit', amount: 1200, purpose: 'Labour charges', account: { name: 'Labour Expenses' }, vendor: { name: 'XYZ Workers' }, files: [], createdAt: '2025-04-07T14:30:00Z', }, { _id: '3', type: 'debit', amount: 300, purpose: 'Stationery purchase', account: { name: 'Office Supplies' }, vendor: { name: 'Stationery Hub' }, files: ['invoice.pdf'], createdAt: '2025-04-06T09:15:00Z', }, { _id: '4', type: 'credit', amount: 2500, purpose: 'Service payment received', account: { name: 'Service Income' }, vendor: { name: 'Client A' }, files: [], createdAt: '2025-04-05T11:45:00Z', }, { _id: '9', type: 'debit', amount: 1200, purpose: 'Labour charges', account: { name: 'Labour Expenses' }, vendor: { name: 'XYZ Workers' }, files: [], createdAt: '2025-03-07T14:30:00Z', }, { _id: '10-a', type: 'debit', amount: 300, purpose: 'Stationery purchase', account: { name: 'Office Supplies' }, vendor: { name: 'Stationery Hub' }, files: ['invoice.pdf'], createdAt: '2025-03-06T09:15:00Z', }, { _id: '10-b', type: 'credit', amount: 2500, purpose: 'Service payment received', account: { name: 'Service Income' }, vendor: { name: 'Client A' }, files: [], createdAt: '2024-04-05T11:45:00Z', }];
+  const companyTransactions = [{
+    _id: 'txn-1',
+    type: 'credit',
+    amount: 1000,
+    account: { name: 'Main Account' },
+    vendor: { name: 'Vendor A' },
+    purpose: 'Purchase',
+    addedBy: { name: 'John Doe' },
+    createdAt: new Date().setHours(0, 0, 0, 0), // Today
+  },
+  {
+    _id: 'txn-2',
+    type: 'debit',
+    amount: 500,
+    account: { name: 'Main Account' },
+    vendor: { name: 'Vendor B' },
+    purpose: 'Refund',
+    addedBy: { name: 'Jane Doe' },
+    createdAt: new Date().setHours(0, 0, 0, 0), // Today
+  },
+  {
+    _id: 'txn-3',
+    type: 'credit',
+    amount: 2000,
+    account: { name: 'Secondary Account' },
+    vendor: { name: 'Vendor C' },
+    purpose: 'Deposit',
+    addedBy: { name: 'John Doe' },
+    createdAt: new Date().setHours(0, 0, 0, 0), // Today
+  },
+
+  // Yesterday's Transactions
+  {
+    _id: 'txn-4',
+    type: 'debit',
+    amount: 800,
+    account: { name: 'Main Account' },
+    vendor: { name: 'Vendor D' },
+    purpose: 'Payment',
+    addedBy: { name: 'Jane Doe' },
+    createdAt: new Date(new Date().setHours(0, 0, 0, 0) - 24 * 60 * 60 * 1000), // Yesterday
+  },
+  {
+    _id: 'txn-5',
+    type: 'credit',
+    amount: 1500,
+    account: { name: 'Secondary Account' },
+    vendor: { name: 'Vendor E' },
+    purpose: 'Transfer',
+    addedBy: { name: 'John Doe' },
+    createdAt: new Date(new Date().setHours(0, 0, 0, 0) - 24 * 60 * 60 * 1000), // Yesterday
+  },
+
+  // Transactions from Two Days Ago
+  {
+    _id: 'txn-6',
+    type: 'debit',
+    amount: 1200,
+    account: { name: 'Main Account' },
+    vendor: { name: 'Vendor F' },
+    purpose: 'Expense',
+    addedBy: { name: 'Jane Doe' },
+    createdAt: new Date(new Date().setHours(0, 0, 0, 0) - 48 * 60 * 60 * 1000), // Two days ago
+  },
+  {
+    _id: 'txn-7',
+    type: 'credit',
+    amount: 2500,
+    account: { name: 'Secondary Account' },
+    vendor: { name: 'Vendor G' },
+    purpose: 'Deposit',
+    addedBy: { name: 'John Doe' },
+    createdAt: new Date(new Date().setHours(0, 0, 0, 0) - 48 * 60 * 60 * 1000), // Two days ago
+  },
+
+  // More Transactions for the Month
+  {
+    _id: 'txn-8',
+    type: 'debit',
+    amount: 900,
+    account: { name: 'Main Account' },
+    vendor: { name: 'Vendor H' },
+    purpose: 'Payment',
+    addedBy: { name: 'Jane Doe' },
+    createdAt: new Date(new Date().setHours(0, 0, 0, 0) - 72 * 60 * 60 * 1000), // Three days ago
+  },
+  {
+    _id: 'txn-9',
+    type: 'credit',
+    amount: 3000,
+    account: { name: 'Secondary Account' },
+    vendor: { name: 'Vendor I' },
+    purpose: 'Transfer',
+    addedBy: { name: 'John Doe' },
+    createdAt: new Date(new Date().setHours(0, 0, 0, 0) - 72 * 60 * 60 * 1000), // Three days ago
+  },]
   // Open modal if query param is set
   useEffect(() => {
     const params = new URLSearchParams(location.search);
@@ -66,7 +161,7 @@ const CompanyTransactions = () => {
   };
 
   return (
-    <div className="p-4 space-y-6">
+    <div className="lg:p-4 space-y-6">
       {/* Header Section */}
       <div className="flex justify-between items-center">
         <h2 className="text-2xl font-bold">Company Transactions</h2>
@@ -85,7 +180,10 @@ const CompanyTransactions = () => {
 
       {/* Modal for Adding Transaction */}
       {isModalOpen && (
-        <Modal onClose={handleModalClose}>
+        <Modal 
+        
+        isOpen={isModalOpen}
+        onClose={handleModalClose}>
           <TransactionForm
             type="company"
             accounts={accounts}
