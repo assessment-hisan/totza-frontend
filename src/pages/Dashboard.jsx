@@ -153,7 +153,7 @@ const Dashboard = () => {
         <div className='flex  justify-between'>
         <h2 className="text-2xl font-bold">Dashboard</h2>
          {/* Navigation Cards */}
-         <div className="flex flex-wrap items-center justify-center gap-10">
+         <div className="flex flex-wrap items-center justify-center gap-2 sm:gap-10">
           {[
             {
               path: '/vendors',
