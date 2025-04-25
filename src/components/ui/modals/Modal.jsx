@@ -13,7 +13,7 @@ const Modal = ({ isOpen, onClose, title, children }) => {
         >
           <X className="w-5 h-5" />
         </button>
-        {title && <h2 className="text-lg font-semibold mb-4">{title}</h2>}
+        
         <div className="overflow-y-auto max-h-screen">{children}</div>
       </div>
     </div>
