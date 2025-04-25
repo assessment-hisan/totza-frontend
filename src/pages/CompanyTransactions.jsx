@@ -161,7 +161,7 @@ const CompanyTransactions = () => {
   };
 
   return (
-    <div className="lg:p-4 space-y-6">
+    <div className="p-3 lg:p-4 space-y-6">
       {/* Header Section */}
       <div className="flex justify-between items-center">
         <h2 className="text-2xl font-bold">Company Transactions</h2>
