@@ -3,113 +3,69 @@ import TransactionForm from '../components/ui/tables/TransactionForm';
 import TransactionTable from '../components/ui/tables/TransactionTable';
 import Modal from '../components/ui/modals/Modal';
 import { useNavigate, useLocation } from 'react-router-dom';
-import axios from 'axios';
+import axiosInstance from '../utils/axiosInstance';
 
 const CompanyTransactions = () => {
   const [isModalOpen, setIsModalOpen] = useState(false);
-  
   const [accounts, setAccounts] = useState([]);
-  const [vendors, setVendors] = useState([]);
-
+  const [companyTransactions, setCompanyTransactions] = useState([]);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState(null);
+  
   const location = useLocation();
   const navigate = useNavigate();
-
-  const companyTransactions = [{
-    _id: 'txn-1',
-    type: 'credit',
-    amount: 1000,
-    account: { name: 'Main Account' },
-    vendor: { name: 'Vendor A' },
-    purpose: 'Purchase',
-    addedBy: { name: 'John Doe' },
-    createdAt: new Date().setHours(0, 0, 0, 0), // Today
-  },
-  {
-    _id: 'txn-2',
-    type: 'debit',
-    amount: 500,
-    account: { name: 'Main Account' },
-    vendor: { name: 'Vendor B' },
-    purpose: 'Refund',
-    addedBy: { name: 'Jane Doe' },
-    createdAt: new Date().setHours(0, 0, 0, 0), // Today
-  },
-  {
-    _id: 'txn-3',
-    type: 'credit',
-    amount: 2000,
-    account: { name: 'Secondary Account' },
-    vendor: { name: 'Vendor C' },
-    purpose: 'Deposit',
-    addedBy: { name: 'John Doe' },
-    createdAt: new Date().setHours(0, 0, 0, 0), // Today
-  },
-
-  // Yesterday's Transactions
-  {
-    _id: 'txn-4',
-    type: 'debit',
-    amount: 800,
-    account: { name: 'Main Account' },
-    vendor: { name: 'Vendor D' },
-    purpose: 'Payment',
-    addedBy: { name: 'Jane Doe' },
-    createdAt: new Date(new Date().setHours(0, 0, 0, 0) - 24 * 60 * 60 * 1000), // Yesterday
-  },
-  {
-    _id: 'txn-5',
-    type: 'credit',
-    amount: 1500,
-    account: { name: 'Secondary Account' },
-    vendor: { name: 'Vendor E' },
-    purpose: 'Transfer',
-    addedBy: { name: 'John Doe' },
-    createdAt: new Date(new Date().setHours(0, 0, 0, 0) - 24 * 60 * 60 * 1000), // Yesterday
-  },
-
-  // Transactions from Two Days Ago
-  {
-    _id: 'txn-6',
-    type: 'debit',
-    amount: 1200,
-    account: { name: 'Main Account' },
-    vendor: { name: 'Vendor F' },
-    purpose: 'Expense',
-    addedBy: { name: 'Jane Doe' },
-    createdAt: new Date(new Date().setHours(0, 0, 0, 0) - 48 * 60 * 60 * 1000), // Two days ago
-  },
-  {
-    _id: 'txn-7',
-    type: 'credit',
-    amount: 2500,
-    account: { name: 'Secondary Account' },
-    vendor: { name: 'Vendor G' },
-    purpose: 'Deposit',
-    addedBy: { name: 'John Doe' },
-    createdAt: new Date(new Date().setHours(0, 0, 0, 0) - 48 * 60 * 60 * 1000), // Two days ago
-  },
-
-  // More Transactions for the Month
-  {
-    _id: 'txn-8',
-    type: 'debit',
-    amount: 900,
-    account: { name: 'Main Account' },
-    vendor: { name: 'Vendor H' },
-    purpose: 'Payment',
-    addedBy: { name: 'Jane Doe' },
-    createdAt: new Date(new Date().setHours(0, 0, 0, 0) - 72 * 60 * 60 * 1000), // Three days ago
-  },
-  {
-    _id: 'txn-9',
-    type: 'credit',
-    amount: 3000,
-    account: { name: 'Secondary Account' },
-    vendor: { name: 'Vendor I' },
-    purpose: 'Transfer',
-    addedBy: { name: 'John Doe' },
-    createdAt: new Date(new Date().setHours(0, 0, 0, 0) - 72 * 60 * 60 * 1000), // Three days ago
-  },]
+  
+  const getAccounts = async () => {
+    try {
+      const response = await axiosInstance.get('account');
+      console.log("Accounts response:", response);
+      if (response.data) {
+        setAccounts(response.data);
+      }
+    } catch (error) {
+      console.log("Error fetching accounts:", error);
+    }
+  };
+  
+  const getCompanyTnx = async () => {
+    setLoading(true);
+    setError(null);
+    try {
+      const res = await axiosInstance.get('company');
+      console.log("Raw transactions response:", res);
+      
+      // Extract the data properly based on response structure
+      let transactionsData = [];
+      
+      if (Array.isArray(res.data)) {
+        console.log("Response data is an array");
+        transactionsData = res.data;
+      } else if (res.data && typeof res.data === 'object') {
+        console.log("Response data is an object");
+        // Check if it has a data property that's an array
+        if (Array.isArray(res.data.data)) {
+          transactionsData = res.data.data;
+        } else {
+          // Treat it as a single transaction
+          transactionsData = [res.data];
+        }
+      }
+      
+      console.log("Processed transactions data:", transactionsData);
+      
+      if (transactionsData.length === 0) {
+        console.log("Warning: No transactions found in the response");
+      }
+      
+      setCompanyTransactions(transactionsData);
+    } catch (error) {
+      console.log("Error fetching transactions:", error);
+      setError("Failed to load transactions");
+    } finally {
+      setLoading(false);
+    }
+  };
+  
   // Open modal if query param is set
   useEffect(() => {
     const params = new URLSearchParams(location.search);
@@ -117,49 +73,50 @@ const CompanyTransactions = () => {
       setIsModalOpen(true);
     }
   }, [location.search]);
-
-  // Fetch accounts, vendors, and transactions
-  // useEffect(() => {
-  //   const fetchData = async () => {
-  //     try {
-  //       const [accRes, vendorRes, txnRes] = await Promise.all([
-  //         axios.get('/api/accounts/company'),
-  //         axios.get('/api/vendors'),
-  //         axios.get('/api/transactions/company'),
-  //       ]);
-  //       setAccounts(accRes.data);
-  //       setVendors(vendorRes.data);
-  //       setCompanyTransactions(txnRes.data);
-  //     } catch (err) {
-  //       console.error('Error fetching data:', err);
-  //     }
-  //   };
-  //   fetchData();
-  // }, []);
-
+  
   // Open modal and update URL
   const handleAddClick = () => {
     setIsModalOpen(true);
     navigate('?openForm=true', { replace: false });
   };
-
+  
   // Close modal and reset URL
   const handleModalClose = () => {
     setIsModalOpen(false);
     navigate('/company-transactions', { replace: true });
   };
-
+  
   // Handle transaction submission
   const handleSubmit = async (formData) => {
     try {
-      // const res = await axios.post('/api/transactions/company', formData);
-      // setCompanyTransactions((prev) => [res.data, ...prev]);
+      console.log("Submitting new transaction:", formData);
+      const res = await axiosInstance.post('company', formData);
+      console.log("Transaction submission response:", res);
+      
+      if (res.data) {
+        // Add the new transaction to the list
+        setCompanyTransactions(prev => [res.data, ...prev]);
+      }
+      
       handleModalClose();
+      // Refresh all transactions
+      getCompanyTnx();
     } catch (err) {
       console.error('Failed to add transaction:', err);
     }
   };
-
+  
+  useEffect(() => {
+    console.log("Component mounted, fetching initial data");
+    getAccounts();
+    getCompanyTnx();
+  }, []);
+  
+  // Log when transactions state changes
+  useEffect(() => {
+    console.log("Current company transactions state:", companyTransactions);
+  }, [companyTransactions]);
+  
   return (
     <div className="p-3 lg:p-4 space-y-6">
       {/* Header Section */}
@@ -172,22 +129,31 @@ const CompanyTransactions = () => {
           + Add Transaction
         </button>
       </div>
-
+      
       {/* Transaction Table */}
       <div className="bg-white rounded shadow p-4">
-        <TransactionTable type="company" transactions={companyTransactions} />
+        {loading ? (
+          <p className="text-center py-4 text-gray-500">Loading transactions...</p>
+        ) : error ? (
+          <p className="text-center py-4 text-red-500">{error}</p>
+        ) : (
+          <>
+            <p className="text-sm text-gray-500 mb-2">Total transactions: {companyTransactions.length}</p>
+            <TransactionTable transactions={companyTransactions} />
+          </>
+        )}
       </div>
-
+      
       {/* Modal for Adding Transaction */}
       {isModalOpen && (
-        <Modal 
-        
-        isOpen={isModalOpen}
-        onClose={handleModalClose}>
+        <Modal
+          isOpen={isModalOpen}
+          onClose={handleModalClose}
+          title="Add Transaction"
+        >
           <TransactionForm
             type="company"
             accounts={accounts}
-            vendors={vendors}
             onSubmit={handleSubmit}
           />
         </Modal>
@@ -196,4 +162,4 @@ const CompanyTransactions = () => {
   );
 };
 
-export default CompanyTransactions;
+export default CompanyTransactions;   

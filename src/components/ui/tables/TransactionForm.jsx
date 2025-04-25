@@ -1,6 +1,8 @@
 import React, { useState } from 'react';
 
-const TransactionForm = ({ accounts, vendors, onSubmit }) => {
+
+
+const TransactionForm = ({ accounts,  onSubmit }) => {
   const [formData, setFormData] = useState({
     type: 'debit',
     amount: '',
@@ -20,7 +22,9 @@ const TransactionForm = ({ accounts, vendors, onSubmit }) => {
       setFormData({ ...formData, [name]: value });
     }
   };
-
+   
+  
+   
   const handleSubmit = async (e) => {
     e.preventDefault();
     setLoading(true);
@@ -36,7 +40,7 @@ const TransactionForm = ({ accounts, vendors, onSubmit }) => {
     await onSubmit(data);
     setLoading(false);
     setFormData({
-      type: 'debit',
+      type: 'Debit',
       amount: '',
       account: '',
       vendor: '',
@@ -79,7 +83,7 @@ const TransactionForm = ({ accounts, vendors, onSubmit }) => {
           Transaction Type <span className="text-red-500">*</span>
         </label>
         <div className="flex gap-3">
-          {['debit', 'credit'].map((type) => (
+          {['Debit', 'Credit'].map((type) => (
             <button
               type="button"
               key={type}
@@ -119,7 +123,7 @@ const TransactionForm = ({ accounts, vendors, onSubmit }) => {
       </div>
 
       {/* Vendor Selector */}
-      <div className="space-y-2">
+      {/* <div className="space-y-2">
         <label className="block text-sm font-medium text-gray-700">
           Vendor <span className="text-red-500">*</span>
         </label>
@@ -137,7 +141,39 @@ const TransactionForm = ({ accounts, vendors, onSubmit }) => {
             </option>
           ))}
         </select>
-      </div>
+      </div> */}
+
+      {/* vendor */}
+      <div className="space-y-2">
+  <label className="block text-sm font-medium text-gray-700">
+    Vendor 
+  </label>
+  <input
+    type="text"
+    name="vendor"
+    value={formData.vendor}
+    onChange={handleChange}
+    
+    placeholder="Enter vendor name"
+    className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+  />
+</div>
+
+   {/* vendor */}
+   <div className="space-y-2">
+  <label className="block text-sm font-medium text-gray-700">
+    Item 
+  </label>
+  <input
+    type="text"
+    name="item"
+    value={formData.item}
+    onChange={handleChange}
+    
+    placeholder="Enter vendor name"
+    className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+  />
+</div>
 
       {/* Purpose Textarea */}
       <div className="space-y-2">
@@ -155,7 +191,7 @@ const TransactionForm = ({ accounts, vendors, onSubmit }) => {
         />
       </div>
 
-      {/* File Upload */}
+      {/* File Upload
       <div className="space-y-2">
         <label className="block text-sm font-medium text-gray-700">
           Attachments
@@ -189,7 +225,7 @@ const TransactionForm = ({ accounts, vendors, onSubmit }) => {
               : 'Tap to upload or drag and drop'}
           </span>
         </label>
-      </div>
+      </div> */}
 
       {/* Submit Button */}
       <button

@@ -1,4 +1,4 @@
-import React, { useMemo, useState } from 'react';
+import React, { useMemo, useState, useEffect } from 'react';
 import ReportCard from "../components/ui/cards/ReportCard";
 import TransactionTable from '../components/ui/tables/TransactionTable';
 import { useNavigate } from 'react-router-dom';
@@ -7,6 +7,8 @@ import { ArrowRight } from 'lucide-react'; // add this import at the top
 import { Link } from 'react-router-dom';   // also make sure Link is imported
 import { Users, Briefcase, Package } from 'lucide-react';
 import { format, isThisWeek, isThisMonth, isThisYear, parseISO } from 'date-fns';
+import axiosInstance from '../utils/axiosInstance';
+
 const companyTransactions = [
   {
     _id: '10',
@@ -112,9 +114,21 @@ const companyTransactions = [
 
 const Dashboard = () => {
   const navigate = useNavigate();
+  const [userInfo, setUserInfo] = useState(null)
   const [period, setPeriod] = useState("month");
 
-
+  const getUserInfo = async () => {
+    try {
+      const response = await axiosInstance.get('api/auth/get-user');
+      if (response.data) {
+        setUserInfo(response.data.user);
+      }
+    } catch (error) {
+      console.log(error);
+      localStorage.clear();
+      navigate('/login');
+    }
+  };
 
   const filteredTransactions = useMemo(() => {
     return companyTransactions.filter(txn => {
@@ -140,11 +154,9 @@ const Dashboard = () => {
     return filteredTransactions.filter(trans => trans.files.length === 0).length;
   }, [filteredTransactions]);
 
-  const userInfo = {
-    _id: "67d2a196c73b3e551f2ec0b8",
-    fullName: "nishan",
-    email: "nishan@gmail.com"
-  }
+  useEffect(()=>{
+    getUserInfo()
+  },[])
   return (
     <>
       <Navbar userInfo={userInfo} />

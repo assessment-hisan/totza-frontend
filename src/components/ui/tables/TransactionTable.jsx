@@ -1,11 +1,25 @@
-import React, { useState, useMemo } from 'react';
+import React, { useState, useMemo, useEffect } from 'react';
 import Modal from "../modals/Modal"; // Import your Modal component
 import { Trash } from 'lucide-react';
+import axiosInstance from '../../../utils/axiosInstance';
 
 // Helper function to group transactions by date
 const groupTransactionsByDate = (transactions) => {
+  console.log("Grouping transactions:", transactions);
+  if (!Array.isArray(transactions) || transactions.length === 0) {
+    console.log("No transactions to group or invalid format");
+    return {};
+  }
+  
   return transactions.reduce((acc, txn) => {
-    const date = new Date(txn.createdAt).toLocaleDateString(); // Format date as "MM/DD/YYYY"
+    if (!txn) {
+      console.log("Found null/undefined transaction");
+      return acc;
+    }
+    
+    // Handling both createdAt and date properties
+    const txnDate = txn.createdAt || txn.date || new Date();
+    const date = new Date(txnDate).toLocaleDateString(); // Format date as "MM/DD/YYYY"
     if (!acc[date]) acc[date] = [];
     acc[date].push(txn);
     return acc;
@@ -14,12 +28,22 @@ const groupTransactionsByDate = (transactions) => {
 
 // Helper function to calculate totals
 const calculateTotals = (transactions) => {
+  if (!Array.isArray(transactions) || transactions.length === 0) {
+    return { credit: 0, debit: 0 };
+  }
+  
   return transactions.reduce(
     (totals, txn) => {
-      if (txn.type === 'credit') {
-        totals.credit += txn.amount;
-      } else if (txn.type === 'debit') {
-        totals.debit += txn.amount;
+      if (!txn) return totals;
+      
+      // Handle both lowercase and uppercase type values
+      const type = txn.type?.toLowerCase() || '';
+      const amount = Number(txn.amount) || 0;
+      
+      if (type === 'credit') {
+        totals.credit += amount;
+      } else if (type === 'debit') {
+        totals.debit += amount;
       }
       return totals;
     },
@@ -27,15 +51,43 @@ const calculateTotals = (transactions) => {
   );
 };
 
-const TransactionTable = ({ transactions = [], onDelete }) => {
+const TransactionTable = ({ transactions = [] }) => {
   const [selectedId, setSelectedId] = useState(null);
   const [isModalOpen, setIsModalOpen] = useState(false);
+  const [processedTransactions, setProcessedTransactions] = useState([]);
+  
+  // Process and validate transactions data
+  useEffect(() => {
+    console.log("TransactionTable received transactions:", transactions);
+    
+    // Handle different potential data structures
+    let validTransactions = [];
+    
+    if (Array.isArray(transactions)) {
+      validTransactions = transactions.filter(t => t && typeof t === 'object');
+    } else if (transactions && typeof transactions === 'object') {
+      // Check if it's an object with data property
+      if (Array.isArray(transactions.data)) {
+        validTransactions = transactions.data.filter(t => t && typeof t === 'object');
+      } else {
+        // Treat as single transaction
+        validTransactions = [transactions];
+      }
+    }
+    
+    console.log("Processed transactions:", validTransactions);
+    setProcessedTransactions(validTransactions);
+  }, [transactions]);
 
   // Group transactions by date
-  const groupedTransactions = useMemo(() => groupTransactionsByDate(transactions), [transactions]);
+  const groupedTransactions = useMemo(() => 
+    groupTransactionsByDate(processedTransactions), 
+  [processedTransactions]);
 
   // Calculate monthly totals
-  const monthlyTotals = useMemo(() => calculateTotals(transactions), [transactions]);
+  const monthlyTotals = useMemo(() => 
+    calculateTotals(processedTransactions), 
+  [processedTransactions]);
 
   // Calculate today's totals
   const todayDate = new Date().toLocaleDateString();
@@ -47,17 +99,40 @@ const TransactionTable = ({ transactions = [], onDelete }) => {
     setIsModalOpen(true);
   };
 
-  const handleConfirmDelete = () => {
+  const deleteTnx = async (selectedId) => {
+    try {
+      const response = await axiosInstance.delete(`company/${selectedId}`);
+      console.log("Delete response:", response);
+      // Return true to indicate successful deletion
+      return true;
+    } catch (error) {
+      console.log("Delete error:", error);
+      return false;
+    }
+  };
+
+  const handleConfirmDelete = async () => {
     if (selectedId) {
-      onDelete(selectedId);
+      const success = await deleteTnx(selectedId);
+      if (success) {
+        // Remove the deleted transaction from the state
+        setProcessedTransactions(prev => 
+          prev.filter(txn => txn._id !== selectedId)
+        );
+      }
       setIsModalOpen(false);
       setSelectedId(null);
     }
   };
 
-  if (!transactions.length) {
+  if (!processedTransactions.length) {
     return <p className="text-center text-gray-500">No transactions available.</p>;
   }
+
+  // Sort dates to display most recent first
+  const sortedDates = Object.keys(groupedTransactions).sort((a, b) => {
+    return new Date(b) - new Date(a);
+  });
 
   return (
     <>
@@ -86,37 +161,22 @@ const TransactionTable = ({ transactions = [], onDelete }) => {
               </td>
             </tr>
 
-            {/* Today's Summary Row */}
-            {todayTransactions.length > 0 && (
-              <tr className="bg-green-100 font-semibold">
-                <td colSpan={8} className="px-4 py-2">
-                  <div className="flex justify-between">
-                    <span>
-                      Today ({new Date().toLocaleString('en-US', { weekday: 'long' })}, {new Date().toLocaleDateString()})
-                    </span>
-                    <span>Total Credits: ₹{todayTotals.credit.toLocaleString()} | Total Debits: ₹{todayTotals.debit.toLocaleString()}</span>
-                  </div>
-                </td>
-              </tr>
-            )}
-
-            {/* Daily Groups */}
-            {Object.keys(groupedTransactions).map((date) => {
-              if (date === todayDate) return null; // Skip today's transactions here
-
+            {/* Iterate through all dates including today */}
+            {sortedDates.map((date) => {
               const dailyTransactions = groupedTransactions[date];
               const dailyTotals = calculateTotals(dailyTransactions);
               const dateObject = new Date(date);
               const dayOfWeek = dateObject.toLocaleString('en-US', { weekday: 'long' });
+              const isToday = date === todayDate;
 
               return (
-                <>
+                <React.Fragment key={`date-group-${date}`}>
                   {/* Daily Summary Row */}
-                  <tr key={`summary-${date}`} className="bg-gray-200 font-semibold">
+                  <tr className={`${isToday ? 'bg-green-100' : 'bg-gray-200'} font-semibold`}>
                     <td colSpan={8} className="px-4 py-2">
                       <div className="flex justify-between">
                         <span>
-                          {dayOfWeek}, {date}
+                          {isToday ? 'Today (' : ''}{dayOfWeek}, {date}{isToday ? ')' : ''}
                         </span>
                         <span>Total Credits: ₹{dailyTotals.credit.toLocaleString()} | Total Debits: ₹{dailyTotals.debit.toLocaleString()}</span>
                       </div>
@@ -126,14 +186,14 @@ const TransactionTable = ({ transactions = [], onDelete }) => {
                   {/* Detailed Transaction Rows */}
                   {dailyTransactions.map((txn) => (
                     <tr key={txn._id} className="border-b hover:bg-gray-50">
-                      <td className="px-4 py-2">{new Date(txn.createdAt).toLocaleDateString()}</td>
-                      <td className={`px-4 py-2 font-medium ${txn.type === 'credit' ? 'text-green-600' : 'text-red-600'}`}>
+                      <td className="px-4 py-2">{new Date(txn.createdAt || txn.date || new Date()).toLocaleDateString()}</td>
+                      <td className={`px-4 py-2 font-medium ${txn.type?.toLowerCase() === 'credit' ? 'text-green-600' : 'text-red-600'}`}>
                         {txn.type}
                       </td>
-                      <td className="px-4 py-2">₹{txn.amount.toLocaleString()}</td>
+                      <td className="px-4 py-2">₹{txn.amount}</td>
                       <td className="px-4 py-2">{txn.account?.name || 'N/A'}</td>
-                      <td className="px-4 py-2">{txn.vendor?.name || 'N/A'}</td>
-                      <td className="px-4 py-2">{txn.purpose}</td>
+                      <td className="px-4 py-2">{txn.vendor?.name || txn.vendor || 'N/A'}</td>
+                      <td className="px-4 py-2">{txn.purpose || 'N/A'}</td>
                       <td className="px-4 py-2">{txn.addedBy?.name || 'N/A'}</td>
                       <td className="px-4 py-2">
                         <button
@@ -145,7 +205,7 @@ const TransactionTable = ({ transactions = [], onDelete }) => {
                       </td>
                     </tr>
                   ))}
-                </>
+                </React.Fragment>
               );
             })}
           </tbody>
