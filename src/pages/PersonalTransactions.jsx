@@ -1,68 +1,82 @@
-import React, { useState } from 'react';
+import React, { useEffect, useState } from 'react';
 import TransactionForm from '../components/ui/tables/TransactionForm';
 import TransactionTable from '../components/ui/tables/TransactionTable';
 import Modal from '../components/ui/modals/Modal';
-
+import axiosInstance from '../utils/axiosInstance';
 
 const PersonalTransactions = () => {
   const [isModalOpen, setIsModalOpen] = useState(false);
     const [accounts, setAccounts] = useState([]);
   const [vendors, setVendors] = useState([]);
+  const [loading, setLoading] = useState(false)
+  const [error, setError] = useState(null)
   const handleAddClick = () => setIsModalOpen(true);
   const handleModalClose = () => setIsModalOpen(false);
+ 
+  const [personalTnx, setPersonalTnx] = useState([])
+   
+  const getPersonalTnx = async () => {
+    setLoading(true);
+    setError(null);
+    try {
+      const res = await axiosInstance.get('personal');
+      console.log("Raw personal tnx:", res);
+      
+      // Extract the data properly based on response structure
+      let transactionsData = [];
+      
+      if (Array.isArray(res.data)) {
+        console.log("Response data is an array");
+        transactionsData = res.data;
+      } else if (res.data && typeof res.data === 'object') {
+        console.log("Response data is an object");
+        // Check if it has a data property that's an array
+        if (Array.isArray(res.data.data)) {
+          transactionsData = res.data.data;
+        } else {
+          // Treat it as a single transaction
+          transactionsData = [res.data];
+        }
+      }
+      
+      console.log("Processed transactions data:", transactionsData);
+      
+      if (transactionsData.length === 0) {
+        console.log("Warning: No transactions found in the response");
+      }
+      
+      setPersonalTnx(transactionsData);
+    } catch (error) {
+      console.log("Error fetching transactions:", error);
+      setError("Failed to load transactions");
+    } finally {
+      setLoading(false);
+    }
+  }; 
 
-  const personalTransactions = [
-    {
-      _id: 'txn_1',
-      createdAt: new Date('2025-04-01T10:00:00Z'),
-      type: 'credit',
-      amount: 50000,
-      account: { name: 'Salary Account' },
-      vendor: { name: 'Company' },
-      purpose: 'Salary',
-      addedBy: { name: 'John Doe' },
-    },
-    {
-      _id: 'txn_2',
-      createdAt: new Date('2025-04-05T14:00:00Z'),
-      type: 'debit',
-      amount: 15000,
-      account: { name: 'Rent Account' },
-      vendor: { name: 'Landlord' },
-      purpose: 'Rent',
-      addedBy: { name: 'Jane Doe' },
-    },
-    {
-      _id: 'txn_3',
-      createdAt: new Date('2025-04-10T12:00:00Z'),
-      type: 'debit',
-      amount: 2000,
-      account: { name: 'Grocery Account' },
-      vendor: { name: 'Grocery Store' },
-      purpose: 'Groceries',
-      addedBy: { name: 'John Doe' },
-    },
-    {
-      _id: 'txn_4',
-      createdAt: new Date('2025-04-15T16:00:00Z'),
-      type: 'credit',
-      amount: 10000,
-      account: { name: 'Bonus Account' },
-      vendor: { name: 'Company' },
-      purpose: 'Bonus',
-      addedBy: { name: 'Jane Doe' },
-    },
-    {
-      _id: 'txn_5',
-      createdAt: new Date('2025-04-20T10:00:00Z'),
-      type: 'debit',
-      amount: 3000,
-      account: { name: 'Utility Account' },
-      vendor: { name: 'Utility Provider' },
-      purpose: 'Utility Bills',
-      addedBy: { name: 'John Doe' },
-    },
-  ];
+  const handleSubmit = async (formData) => {
+    try {
+      console.log("Submitting new transaction:", formData);
+      const res = await axiosInstance.post('personal', formData);
+      console.log("Transaction submission response:", res);
+      
+      if (res.data) {
+        // Add the new transaction to the list
+        setPersonalTnx(prev => [res.data, ...prev]);
+      }
+      
+      handleModalClose();
+      // Refresh all transactions
+      getCompanyTnx();
+    } catch (err) {
+      console.error('Failed to add transaction:', err);
+    }
+  };
+
+ useEffect(()=>{
+  getPersonalTnx()
+  console.log(personalTnx)
+ }, [])
 
   return (
     <div className="p-6 space-y-6">
@@ -77,14 +91,15 @@ const PersonalTransactions = () => {
       </div>
 
       <div className="bg-white rounded shadow p-4">
-        <TransactionTable transactions={personalTransactions} />
+        <TransactionTable transactions={personalTnx} />
       </div>
 
      
      {isModalOpen && (
-        <Modal onClose={handleModalClose}>
+        <Modal isOpen={isModalOpen} onClose={handleModalClose}>
           <TransactionForm
             type="personal"
+            onSubmit={handleSubmit}
             accounts={accounts}
             vendors={vendors}
             onSuccess={handleModalClose}

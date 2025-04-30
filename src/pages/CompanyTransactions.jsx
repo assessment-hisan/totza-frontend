@@ -32,16 +32,16 @@ const CompanyTransactions = () => {
     setError(null);
     try {
       const res = await axiosInstance.get('company');
-      console.log("Raw transactions response:", res);
+      // console.log("Raw transactions response:", res);
       
       // Extract the data properly based on response structure
       let transactionsData = [];
       
       if (Array.isArray(res.data)) {
-        console.log("Response data is an array");
+        // console.log("Response data is an array");
         transactionsData = res.data;
       } else if (res.data && typeof res.data === 'object') {
-        console.log("Response data is an object");
+        // console.log("Response data is an object");
         // Check if it has a data property that's an array
         if (Array.isArray(res.data.data)) {
           transactionsData = res.data.data;
@@ -51,11 +51,11 @@ const CompanyTransactions = () => {
         }
       }
       
-      console.log("Processed transactions data:", transactionsData);
+      // console.log("Processed transactions data:", transactionsData);
       
-      if (transactionsData.length === 0) {
-        console.log("Warning: No transactions found in the response");
-      }
+      // if (transactionsData.length === 0) {
+      //   console.log("Warning: No transactions found in the response");
+      // }
       
       setCompanyTransactions(transactionsData);
     } catch (error) {
@@ -107,9 +107,9 @@ const CompanyTransactions = () => {
   };
   
   useEffect(() => {
-    console.log("Component mounted, fetching initial data");
     getAccounts();
     getCompanyTnx();
+    console.log("accounts",accounts)
   }, []);
   
   // Log when transactions state changes

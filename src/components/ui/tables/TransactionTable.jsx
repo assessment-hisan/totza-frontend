@@ -218,8 +218,9 @@ const TransactionTable = ({ transactions = [] }) => {
         onClose={() => setIsModalOpen(false)}
         title="Confirm Deletion"
       >
+        <div className='p-4'>
         <p>Are you sure you want to delete this transaction?</p>
-        <div className="flex justify-end gap-2 mt-4">
+        <div className="flex justify-end gap-2 mt-4 ">
           <button
             onClick={() => setIsModalOpen(false)}
             className="px-4 py-2 rounded bg-gray-300 hover:bg-gray-400"
@@ -232,6 +233,7 @@ const TransactionTable = ({ transactions = [] }) => {
           >
             Delete
           </button>
+        </div>
         </div>
       </Modal>
     </>
