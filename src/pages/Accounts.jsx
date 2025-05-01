@@ -1,21 +1,46 @@
-import React, { useState } from 'react';
+import React, { useEffect, useState } from 'react';
 import Modal from '../components/ui/modals/Modal';
-import AccountForm from '../components/ui/tables/AccountForm'; // You'll create this
-import AccountTable from '../components/ui/tables/AccountTable'; // To show the list
+import AccountForm from '../components/ui/tables/AccountForm';
+import AccountTable from '../components/ui/tables/AccountTable';
+import axiosInstance from '../utils/axiosInstance';
 
 const Account = () => {
   const [isModalOpen, setIsModalOpen] = useState(false);
+  const [accounts, setAccounts] = useState([]);
+  const [refreshTrigger, setRefreshTrigger] = useState(0);
+  
+  const getAccounts = async () => {
+    try {
+      const res = await axiosInstance.get('account');
+      if (res.data) {
+        setAccounts(res.data);
+        console.log(res.data)
+      }
+    } catch (error) {
+      console.log(error);
+    }
+  };
+  
+  const deleteAcc = async (id) => {
+    try {
+      await axiosInstance.delete(`account/${id}`);
+      // Trigger refresh after successful delete
+      setRefreshTrigger(prev => prev + 1);
+    } catch (error) {
+      console.log(error);
+    }
+  };
 
-  // Dummy data for financial accounts
-  const dummyAccounts = [
-    { _id: 'account_0', name: 'Cost of Goods Sold', type: 'expense' },
-    { _id: 'account_1', name: 'Labour Expenses', type: 'expense' },
-    { _id: 'account_2', name: 'Rent', type: 'expense' },
-    { _id: 'account_3', name: 'Utilities', type: 'expense' },
-    { _id: 'account_4', name: 'Sales Revenue', type: 'income' },
-    { _id: 'account_5', name: 'Service Revenue', type: 'income' },
-  ];
-
+  // Handle account creation success
+  const handleAccountCreated = () => {
+    setIsModalOpen(false);
+    setRefreshTrigger(prev => prev + 1);
+  };
+  
+  useEffect(() => {
+    getAccounts();
+  }, [refreshTrigger]); // Only refresh when refreshTrigger changes
+  
   return (
     <div className="p-6 space-y-6">
       <div className="flex justify-between items-center">
@@ -27,13 +52,12 @@ const Account = () => {
           + Add Account
         </button>
       </div>
-
-      {/* Pass dummy data directly to AccountTable */}
-      <AccountTable accounts={dummyAccounts} />
-
+      
+      <AccountTable accounts={accounts} onDelete={deleteAcc} />
+      
       {isModalOpen && (
-        <Modal onClose={() => setIsModalOpen(false)}>
-          <AccountForm onSuccess={() => setIsModalOpen(false)} />
+        <Modal isOpen={isModalOpen} onClose={() => setIsModalOpen(false)}>
+          <AccountForm onSuccess={handleAccountCreated} />
         </Modal>
       )}
     </div>

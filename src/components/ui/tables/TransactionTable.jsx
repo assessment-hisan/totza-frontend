@@ -5,7 +5,7 @@ import axiosInstance from '../../../utils/axiosInstance';
 
 // Helper function to group transactions by date
 const groupTransactionsByDate = (transactions) => {
-  console.log("Grouping transactions:", transactions);
+  
   if (!Array.isArray(transactions) || transactions.length === 0) {
     console.log("No transactions to group or invalid format");
     return {};
@@ -58,7 +58,7 @@ const TransactionTable = ({ transactions = [] }) => {
   
   // Process and validate transactions data
   useEffect(() => {
-    console.log("TransactionTable received transactions:", transactions);
+    
     
     // Handle different potential data structures
     let validTransactions = [];
@@ -75,7 +75,7 @@ const TransactionTable = ({ transactions = [] }) => {
       }
     }
     
-    console.log("Processed transactions:", validTransactions);
+    
     setProcessedTransactions(validTransactions);
   }, [transactions]);
 
@@ -101,8 +101,8 @@ const TransactionTable = ({ transactions = [] }) => {
 
   const deleteTnx = async (selectedId) => {
     try {
-      const response = await axiosInstance.delete(`company/${selectedId}`);
-      console.log("Delete response:", response);
+      await axiosInstance.delete(`company/${selectedId}`);
+      
       // Return true to indicate successful deletion
       return true;
     } catch (error) {

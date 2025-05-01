@@ -18,7 +18,7 @@ const CompanyTransactions = () => {
   const getAccounts = async () => {
     try {
       const response = await axiosInstance.get('account');
-      console.log("Accounts response:", response);
+    
       if (response.data) {
         setAccounts(response.data);
       }
@@ -32,7 +32,7 @@ const CompanyTransactions = () => {
     setError(null);
     try {
       const res = await axiosInstance.get('company');
-      // console.log("Raw transactions response:", res);
+  
       
       // Extract the data properly based on response structure
       let transactionsData = [];
@@ -89,17 +89,13 @@ const CompanyTransactions = () => {
   // Handle transaction submission
   const handleSubmit = async (formData) => {
     try {
-      console.log("Submitting new transaction:", formData);
+
       const res = await axiosInstance.post('company', formData);
-      console.log("Transaction submission response:", res);
-      
       if (res.data) {
-        // Add the new transaction to the list
         setCompanyTransactions(prev => [res.data, ...prev]);
       }
       
       handleModalClose();
-      // Refresh all transactions
       getCompanyTnx();
     } catch (err) {
       console.error('Failed to add transaction:', err);
@@ -109,14 +105,10 @@ const CompanyTransactions = () => {
   useEffect(() => {
     getAccounts();
     getCompanyTnx();
-    console.log("accounts",accounts)
+    
   }, []);
   
-  // Log when transactions state changes
-  useEffect(() => {
-    console.log("Current company transactions state:", companyTransactions);
-  }, [companyTransactions]);
-  
+ 
   return (
     <div className="p-3 lg:p-4 space-y-6">
       {/* Header Section */}

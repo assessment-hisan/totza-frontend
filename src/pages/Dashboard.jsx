@@ -9,114 +9,13 @@ import { Users, Briefcase, Package } from 'lucide-react';
 import { format, isThisWeek, isThisMonth, isThisYear, parseISO } from 'date-fns';
 import axiosInstance from '../utils/axiosInstance';
 
-const companyTransactions = [
-  {
-    _id: '10',
-    type: 'credit',
-    amount: 7000,
-    purpose: 'Advance payment from client',
-    account: { name: 'Client Payment' },
-    vendor: { name: 'ABC Traders' },
-    files: ['receipt1.pdf'],
-    createdAt: '2025-04-08T10:00:00Z',
-  },
-  {
-    _id: '20',
-    type: 'debit',
-    amount: 1200,
-    purpose: 'Labour charges',
-    account: { name: 'Labour Expenses' },
-    vendor: { name: 'XYZ Workers' },
-    files: [],
-    createdAt: '2025-04-07T14:30:00Z',
-  },
-  {
-    _id: '30',
-    type: 'debit',
-    amount: 300,
-    purpose: 'Stationery purchase',
-    account: { name: 'Office Supplies' },
-    vendor: { name: 'Stationery Hub' },
-    files: ['invoice.pdf'],
-    createdAt: '2025-04-06T09:15:00Z',
-  },
-  {
-    _id: '1',
-    type: 'credit',
-    amount: 5000,
-    purpose: 'Advance payment from client',
-    account: { name: 'Client Payment' },
-    vendor: { name: 'ABC Traders' },
-    files: ['receipt1.pdf'],
-    createdAt: '2025-04-08T10:00:00Z',
-  },
-  {
-    _id: '2',
-    type: 'debit',
-    amount: 1200,
-    purpose: 'Labour charges',
-    account: { name: 'Labour Expenses' },
-    vendor: { name: 'XYZ Workers' },
-    files: [],
-    createdAt: '2025-04-07T14:30:00Z',
-  },
-  {
-    _id: '3',
-    type: 'debit',
-    amount: 300,
-    purpose: 'Stationery purchase',
-    account: { name: 'Office Supplies' },
-    vendor: { name: 'Stationery Hub' },
-    files: ['invoice.pdf'],
-    createdAt: '2025-04-06T09:15:00Z',
-  },
-  {
-    _id: '4',
-    type: 'credit',
-    amount: 2500,
-    purpose: 'Service payment received',
-    account: { name: 'Service Income' },
-    vendor: { name: 'Client A' },
-    files: [],
-    createdAt: '2025-04-05T11:45:00Z',
-  },
-  {
-    _id: '9',
-    type: 'debit',
-    amount: 1200,
-    purpose: 'Labour charges',
-    account: { name: 'Labour Expenses' },
-    vendor: { name: 'XYZ Workers' },
-    files: [],
-    createdAt: '2025-03-07T14:30:00Z',
-  },
-  {
-    _id: '10',
-    type: 'debit',
-    amount: 300,
-    purpose: 'Stationery purchase',
-    account: { name: 'Office Supplies' },
-    vendor: { name: 'Stationery Hub' },
-    files: ['invoice.pdf'],
-    createdAt: '2025-03-06T09:15:00Z',
-  },
-  {
-    _id: '10',
-    type: 'credit',
-    amount: 2500,
-    purpose: 'Service payment received',
-    account: { name: 'Service Income' },
-    vendor: { name: 'Client A' },
-    files: [],
-    createdAt: '2024-04-08T11:45:00Z',
-  }
-];
+
 
 const Dashboard = () => {
   const navigate = useNavigate();
   const [userInfo, setUserInfo] = useState(null)
   const [period, setPeriod] = useState("month");
-
+  const [companyTransactions, setCompanyTransactions] =  useState([])
   const getUserInfo = async () => {
     try {
       const response = await axiosInstance.get('api/auth/get-user');
@@ -130,34 +29,63 @@ const Dashboard = () => {
     }
   };
 
-  const filteredTransactions = useMemo(() => {
-    return companyTransactions.filter(txn => {
-      const date = parseISO(txn.createdAt);
-      if (period === "week") return isThisWeek(date);
-      if (period === "month") return isThisMonth(date);
-      if (period === "year") return isThisYear(date);
-      return true;
-    });
-  }, [period]);
+  const getRecentCmpnyTns = async () => {
+    try {
+      const res = await axiosInstance.get("company/recent")
+      if (res.data) {
+        setCompanyTransactions(res.data)
+      }
+    } catch (error) {
+       console.log(error)
+    }
+  }
+  // Fixed version of the transaction filtering and calculation functions
 
-  const formatCurrency = (amount) => `₹ ${amount.toLocaleString("en-IN")}`;
+const filteredTransactions = useMemo(() => {
+  // Guard against undefined companyTransactions
+  if (!companyTransactions || !Array.isArray(companyTransactions)) {
+    return [];
+  }
+  
+  return companyTransactions.filter(txn => {
+    // Guard against txn without createdAt
+    if (!txn || !txn.createdAt) return false;
+    
+    const date = parseISO(txn.createdAt);
+    if (period === "week") return isThisWeek(date);
+    if (period === "month") return isThisMonth(date);
+    if (period === "year") return isThisYear(date);
+    return true;
+  });
+}, [companyTransactions, period]);
 
-  const totalIncome = useMemo(() => {
-    return filteredTransactions.reduce((acc, curr) => curr.type === 'credit' ? acc + curr.amount : acc, 0);
-  }, [filteredTransactions]);
+const formatCurrency = (amount) => `₹ ${(amount || 0).toLocaleString("en-IN")}`;
 
-  const totalExpenses = useMemo(() => {
-    return filteredTransactions.reduce((acc, curr) => curr.type === 'debit' ? acc + curr.amount : acc, 0);
-  }, [filteredTransactions]);
+const totalIncome = useMemo(() => {
+  return filteredTransactions.reduce((acc, curr) => 
+    // Changed to case-insensitive comparison
+    (curr.type && curr.type.toLowerCase() === 'credit') ? 
+      acc + (curr.amount || 0) : acc, 0);
+}, [filteredTransactions]);
 
-  const pendingReceipts = useMemo(() => {
-    return filteredTransactions.filter(trans => trans.files.length === 0).length;
-  }, [filteredTransactions]);
+const totalExpenses = useMemo(() => {
+  return filteredTransactions.reduce((acc, curr) => 
+    // Changed to case-insensitive comparison
+    (curr.type && curr.type.toLowerCase() === 'debit') ? 
+      acc + (curr.amount || 0) : acc, 0);
+}, [filteredTransactions]);
+
+
 
   useEffect(()=>{
     getUserInfo()
+    getRecentCmpnyTns()
   },[])
-  return (
+  if (!userInfo) {
+    return null;
+  }
+   return (
+   
     <>
       <Navbar userInfo={userInfo} />
       <div className="p-6 space-y-6">
@@ -208,7 +136,7 @@ const Dashboard = () => {
 
         {/* Period Filter */}
         <div className="flex gap-2 mb-4">
-          {["week", "month", "year"].map(p => (
+          {["month", "week"].map(p => (
             <button
               key={p}
               className={`px-4 py-2 rounded-lg shadow-sm transition-colors
@@ -221,12 +149,10 @@ const Dashboard = () => {
             </button>
           ))}
         </div>
-
-
-        <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-6">
+        <div className="grid grid-cols-1 md:grid-cols-3">
           <ReportCard title={`${period[0].toUpperCase() + period.slice(1)}ly Income`} value={formatCurrency(totalIncome)} type="income" />
           <ReportCard title={`${period[0].toUpperCase() + period.slice(1)}ly Expenses`} value={formatCurrency(totalExpenses)} type="expense" />
-          <ReportCard title="Pending Receipts" value={pendingReceipts} />
+          
           <div
             onClick={() => navigate('/company-transactions?openForm=true')}
             className='bg-green-500 py-3 lg:py-5 text-lg lg:text-2xl w-full h-full rounded-xl flex items-center justify-center cursor-pointer text-white font-semibold hover:bg-green-600 transition'
@@ -252,7 +178,8 @@ const Dashboard = () => {
 
       </div>
     </>
-  );
-};
+  );}
+  
+;
 
 export default Dashboard;
