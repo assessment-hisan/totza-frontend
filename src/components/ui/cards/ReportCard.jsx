@@ -28,7 +28,7 @@ const ReportCard = ({ title, value, type = 'info' }) => {
   const { icon, bg, text } = getStyles();
 
   return (
-    <div className={`w-full sm:w-[250px] px-2 py-4 rounded-2xl shadow-md ${bg} flex items-center justify-between`}>
+    <div className={`w-full  px-2 py-4 rounded-2xl shadow-md ${bg} flex items-center justify-between`}>
       <div>
         <h4 className="text-sm text-gray-500">{title}</h4>
         <p className={`text-2xl font-bold ${text}`}>{value}</p>

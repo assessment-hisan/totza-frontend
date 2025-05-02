@@ -16,6 +16,7 @@ const Dashboard = () => {
   const [userInfo, setUserInfo] = useState(null)
   const [period, setPeriod] = useState("month");
   const [companyTransactions, setCompanyTransactions] =  useState([])
+  
   const getUserInfo = async () => {
     try {
       const response = await axiosInstance.get('api/auth/get-user');
@@ -81,101 +82,95 @@ const totalExpenses = useMemo(() => {
     getUserInfo()
     getRecentCmpnyTns()
   },[])
-  if (!userInfo) {
-    return null;
-  }
-   return (
-   
+  
+  return (
     <>
       <Navbar userInfo={userInfo} />
-      <div className="p-6 space-y-6">
-        
-        <div className='flex  justify-between'>
-        <h2 className="text-2xl font-bold">Dashboard</h2>
-         {/* Navigation Cards */}
-         <div className="flex flex-wrap items-center justify-center gap-2 sm:gap-10">
-          {[
-            {
-              path: '/vendors',
-              // title: 'Vendors',
-              // description: 'Manage all vendor details',
-              icon: <Users size={20} color="#2563EB" /> // Blue icon for Vendors
-            },
-            {
-              path: '/accounts',
-              // title: 'Accounts',
-              // description: 'Add or modify account categories',
-              icon: <Briefcase size={20} color="#10B981" /> // Green icon for Accounts
-            },
-            {
-              path: '/items',
-              // title: 'Items',
-              // description: 'Manage inventory items',
-              icon: <Package size={20} color="#F59E0B" /> // Orange icon for Items
-            },
-          ].map((card) => (
-            <div
-              key={card.path}
-              onClick={() => navigate(card.path)}
-              className="bg-gray-100 cursor-pointer  rounded-xl transition-transform transform hover:-translate-y-1 flex flex-col items-center text-center"
-            >
-              {/* Icon */}
-              <div className="bg-gray-300 rounded-full p-4">
+      <div className="p-6 space-y-8">
+        {/* Header Section */}
+        <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
+          <h2 className="text-3xl font-bold text-gray-800">Dashboard Overview</h2>
+          
+          {/* Quick Access Cards */}
+          <div className="flex gap-4">
+            {[
+              { path: '/vendors', icon: <Users size={22} className="text-blue-600" /> },
+              { path: '/accounts', icon: <Briefcase size={22} className="text-emerald-500" /> },
+              { path: '/items', icon: <Package size={22} className="text-amber-500" /> },
+            ].map((card) => (
+              <button
+                key={card.path}
+                onClick={() => navigate(card.path)}
+                className="p-3 bg-white rounded-xl shadow-sm hover:shadow-md transition-all duration-200 hover:-translate-y-0.5"
+                aria-label={`Go to ${card.path.slice(1)}`}
+              >
                 {card.icon}
-              </div>
-
-              {/* Title */}
-              {/* <h3 className="text-xl font-bold mb-2">{card.title}</h3> */}
-
-              {/* Description */}
-              {/* <p className="text-sm text-gray-600">{card.description}</p> */}
-            </div>
-          ))}
+              </button>
+            ))}
+          </div>
         </div>
-        </div>
-
+  
         {/* Period Filter */}
-        <div className="flex gap-2 mb-4">
-          {["month", "week"].map(p => (
+        <div className="flex gap-3">
+          {["week", "month"].map(p => (
             <button
               key={p}
-              className={`px-4 py-2 rounded-lg shadow-sm transition-colors
-        ${period === p
-                  ? 'bg-neutral-800 text-white hover:bg-primary-dark'
-                  : 'bg-gray-100 text-gray-600 hover:bg-gray-200'}`}
+              className={`px-4 py-2 text-sm font-medium rounded-full transition-colors ${
+                period === p
+                  ? 'bg-gray-900 text-white shadow-inner'
+                  : 'bg-white text-gray-600 hover:bg-gray-50 shadow'
+              }`}
               onClick={() => setPeriod(p)}
             >
               {p.charAt(0).toUpperCase() + p.slice(1)}
             </button>
           ))}
         </div>
-        <div className="grid grid-cols-1 md:grid-cols-3">
-          <ReportCard title={`${period[0].toUpperCase() + period.slice(1)}ly Income`} value={formatCurrency(totalIncome)} type="income" />
-          <ReportCard title={`${period[0].toUpperCase() + period.slice(1)}ly Expenses`} value={formatCurrency(totalExpenses)} type="expense" />
-          
-          <div
+  
+        {/* Stats Cards */}
+        <div className="grid grid-cols-1 gap-5 md:grid-cols-3">
+          <ReportCard 
+            title={`${period[0].toUpperCase() + period.slice(1)}ly Income`} 
+            value={formatCurrency(totalIncome)} 
+            type="income"
+            trend="up" // Optional: add trend indicator
+          />
+          <ReportCard 
+            title={`${period[0].toUpperCase() + period.slice(1)}ly Expenses`} 
+            value={formatCurrency(totalExpenses)} 
+            type="expense"
+            trend="down" // Optional: add trend indicator
+          />
+          <button
             onClick={() => navigate('/company-transactions?openForm=true')}
-            className='bg-green-500 py-3 lg:py-5 text-lg lg:text-2xl w-full h-full rounded-xl flex items-center justify-center cursor-pointer text-white font-semibold hover:bg-green-600 transition'
+            className='bg-gradient-to-r from-green-500 to-green-600 py-4 text-lg w-full h-full rounded-xl flex items-center justify-center cursor-pointer text-white font-semibold hover:shadow-lg transition-all hover:scale-[1.02]'
           >
             + Add Transaction
-          </div>
+          </button>
         </div>
-
-        {/* Recent Transactions */}
-        <div className="bg-white   rounded-lg shadow mb-6">
-          <div className="flex justify-between items-center mb-2">
-            <h3 className="text-lg font-semibold">Recent Transactions</h3>
-            <Link to="/company-transactions" className="flex items-center text-blue-600 hover:underline">
-              View All <ArrowRight className="ml-1 h-4 w-4" />
+  
+        {/* Recent Transactions Section */}
+        <div className="bg-white rounded-xl shadow-sm overflow-hidden">
+          <div className="p-5 border-b border-gray-100 flex justify-between items-center">
+            <div>
+              <h3 className="text-lg font-semibold text-gray-800">Recent Transactions</h3>
+              <p className="text-sm text-gray-500">Last {period} activity</p>
+            </div>
+            <Link 
+              to="/company-transactions" 
+              className="flex items-center text-blue-600 hover:text-blue-700 text-sm font-medium"
+            >
+              View All
+              <ArrowRight className="ml-1 h-4 w-4" />
             </Link>
           </div>
-          <TransactionTable type="company" limit={3} transactions={filteredTransactions} />
+          <TransactionTable 
+            type="company" 
+            limit={5} 
+            transactions={filteredTransactions} 
+            className="border-none"
+          />
         </div>
-
-       
-
-
-
       </div>
     </>
   );}

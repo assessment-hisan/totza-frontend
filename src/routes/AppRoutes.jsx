@@ -3,6 +3,7 @@ import { Route, Routes } from 'react-router-dom';
 // import Home from '../pages/Home';
 import NotFound from '../pages/NotFound';
 import Login from "../pages/auth/login"
+import Register from "../pages/auth/register"
 import ChangePassword from '../pages/auth/changePassword';
 import Dashboard from '../pages/Dashboard';
 import CompanyTransactions from '../pages/CompanyTransactions';
@@ -17,6 +18,7 @@ const AppRoutes = () => {
   return (
     <Routes>
       <Route path='/login' element={<Login />} />
+      <Route path='/register' element={<Register />} />
       <Route path="/change-password" element={<ChangePassword />} />
       <Route path="*" element={<NotFound />} />
       <Route path="/" element={<Dashboard />} />
