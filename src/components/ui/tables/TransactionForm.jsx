@@ -4,7 +4,7 @@ import React, { useState } from 'react';
 
 const TransactionForm = ({ accounts,  onSubmit }) => {
   const [formData, setFormData] = useState({
-    type: 'debit',
+    type: 'Debit',
     amount: '',
     account: '',
     vendor: '',

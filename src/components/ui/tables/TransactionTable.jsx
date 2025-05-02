@@ -40,9 +40,9 @@ const calculateTotals = (transactions) => {
       const type = txn.type?.toLowerCase() || '';
       const amount = Number(txn.amount) || 0;
       
-      if (type === 'credit') {
+      if (type === 'Credit') {
         totals.credit += amount;
-      } else if (type === 'debit') {
+      } else if (type === 'Cebit') {
         totals.debit += amount;
       }
       return totals;

@@ -2,7 +2,7 @@ import axios from "axios"
 // import {BASE_URL} from "./constants"
 
 const axiosInstance = axios.create({
-     baseURL : "https://totza-backend.onrender.com",
+      baseURL : "https://totza-backend.onrender.com",
     // baseURL : "http://localhost:5000/",
     timeout : 100000,
     headers : {
