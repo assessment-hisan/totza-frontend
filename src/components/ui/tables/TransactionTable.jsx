@@ -1,27 +1,32 @@
 import React, { useState, useMemo, useEffect } from 'react';
-import Modal from "../modals/Modal"; // Import your Modal component
+import Modal from "../modals/Modal";
 import { Trash } from 'lucide-react';
 import axiosInstance from '../../../utils/axiosInstance';
 
 // Helper function to group transactions by date
 const groupTransactionsByDate = (transactions) => {
-  
   if (!Array.isArray(transactions) || transactions.length === 0) {
-    console.log("No transactions to group or invalid format");
     return {};
   }
   
   return transactions.reduce((acc, txn) => {
-    if (!txn) {
-      console.log("Found null/undefined transaction");
-      return acc;
-    }
+    if (!txn) return acc;
     
-    // Handling both createdAt and date properties
-    const txnDate = txn.createdAt || txn.date || new Date();
-    const date = new Date(txnDate).toLocaleDateString(); // Format date as "MM/DD/YYYY"
-    if (!acc[date]) acc[date] = [];
-    acc[date].push(txn);
+    const txnDate = txn.date ? new Date(txn.date) : new Date();
+    const dateKey = txnDate.toISOString().split('T')[0]; // YYYY-MM-DD format for consistent sorting
+    const formattedDate = txnDate.toLocaleDateString('en-US', {
+      month: 'short',
+      day: 'numeric',
+      year: 'numeric'
+    });
+    
+    if (!acc[dateKey]) {
+      acc[dateKey] = {
+        formattedDate,
+        transactions: []
+      };
+    }
+    acc[dateKey].transactions.unshift(txn); // Changed from push to unshift to add to beginning
     return acc;
   }, {});
 };
@@ -36,13 +41,12 @@ const calculateTotals = (transactions) => {
     (totals, txn) => {
       if (!txn) return totals;
       
-      // Handle both lowercase and uppercase type values
-      const type = txn.type?.toLowerCase() || '';
+      const type = txn.type?.toLowerCase();
       const amount = Number(txn.amount) || 0;
       
-      if (type === 'Credit') {
+      if (type === 'credit') {
         totals.credit += amount;
-      } else if (type === 'Cebit') {
+      } else if (type === 'debit') {
         totals.debit += amount;
       }
       return totals;
@@ -56,27 +60,21 @@ const TransactionTable = ({ transactions = [] }) => {
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [processedTransactions, setProcessedTransactions] = useState([]);
   
-  // Process and validate transactions data
   useEffect(() => {
-    
-    
-    // Handle different potential data structures
+    // Ensure we always work with an array of transactions
     let validTransactions = [];
     
     if (Array.isArray(transactions)) {
-      validTransactions = transactions.filter(t => t && typeof t === 'object');
-    } else if (transactions && typeof transactions === 'object') {
-      // Check if it's an object with data property
-      if (Array.isArray(transactions.data)) {
-        validTransactions = transactions.data.filter(t => t && typeof t === 'object');
-      } else {
-        // Treat as single transaction
-        validTransactions = [transactions];
-      }
+      validTransactions = transactions
+        .filter(t => t && typeof t === 'object')
+        .map(t => ({
+          ...t,
+          date: t.date || t.createdAt // Use date if available, fallback to createdAt
+        }));
     }
     
-    
-    setProcessedTransactions(validTransactions);
+    // Reverse the array to show newest first
+    setProcessedTransactions(validTransactions.reverse());
   }, [transactions]);
 
   // Group transactions by date
@@ -89,10 +87,8 @@ const TransactionTable = ({ transactions = [] }) => {
     calculateTotals(processedTransactions), 
   [processedTransactions]);
 
-  // Calculate today's totals
-  const todayDate = new Date().toLocaleDateString();
-  const todayTransactions = groupedTransactions[todayDate] || [];
-  const todayTotals = calculateTotals(todayTransactions);
+  // Get today's date key for highlighting
+  const todayDateKey = new Date().toISOString().split('T')[0];
 
   const handleOpenModal = (id) => {
     setSelectedId(id);
@@ -102,11 +98,9 @@ const TransactionTable = ({ transactions = [] }) => {
   const deleteTnx = async (selectedId) => {
     try {
       await axiosInstance.delete(`company/${selectedId}`);
-      
-      // Return true to indicate successful deletion
       return true;
     } catch (error) {
-      console.log("Delete error:", error);
+      console.error("Delete error:", error);
       return false;
     }
   };
@@ -115,7 +109,6 @@ const TransactionTable = ({ transactions = [] }) => {
     if (selectedId) {
       const success = await deleteTnx(selectedId);
       if (success) {
-        // Remove the deleted transaction from the state
         setProcessedTransactions(prev => 
           prev.filter(txn => txn._id !== selectedId)
         );
@@ -126,81 +119,128 @@ const TransactionTable = ({ transactions = [] }) => {
   };
 
   if (!processedTransactions.length) {
-    return <p className="text-center text-gray-500">No transactions available.</p>;
+    return (
+      <div className="flex flex-col items-center justify-center p-8 bg-white rounded-lg shadow-sm">
+        <p className="text-gray-500 text-lg">No transactions available</p>
+        <p className="text-gray-400 text-sm">Add a transaction to get started</p>
+      </div>
+    );
   }
 
-  // Sort dates to display most recent first
-  const sortedDates = Object.keys(groupedTransactions).sort((a, b) => {
+  // Sort dates in descending order (newest first)
+  const sortedDateKeys = Object.keys(groupedTransactions).sort((a, b) => {
     return new Date(b) - new Date(a);
   });
 
   return (
     <>
-      <div className="overflow-x-auto shadow-md rounded-lg bg-white">
-        <table className="min-w-full text-sm text-left">
-          <thead className="bg-gray-100 border-b font-semibold text-gray-700">
+      <div className="overflow-x-auto rounded-lg border border-gray-200 shadow-sm">
+        <table className="min-w-full divide-y divide-gray-200">
+          <thead className="bg-gray-50">
             <tr>
-              <th className="px-4 py-3">Date</th>
-              <th className="px-4 py-3">Type</th>
-              <th className="px-4 py-3">Amount</th>
-              <th className="px-4 py-3">Account</th>
-              <th className="px-4 py-3">Vendor</th>
-              <th className="px-4 py-3">Purpose</th>
-              <th className="px-4 py-3">Added By</th>
-              <th className="px-4 py-3">Actions</th>
+              <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Date</th>
+              <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Type</th>
+              <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Amount</th>
+              <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Account</th>
+              <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Vendor</th>
+              <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Purpose</th>
+              <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Added By</th>
+              <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Actions</th>
             </tr>
           </thead>
-          <tbody>
+          <tbody className="bg-white divide-y divide-gray-200">
             {/* Monthly Summary Row */}
-            <tr className="bg-blue-100 font-semibold">
-              <td colSpan={8} className="px-4 py-2">
-                <div className="flex justify-between">
-                  <span>Monthly Summary</span>
-                  <span>Total Credits: ₹{monthlyTotals.credit.toLocaleString()} | Total Debits: ₹{monthlyTotals.debit.toLocaleString()}</span>
+            <tr className="bg-blue-50">
+              <td colSpan={8} className="px-6 py-3">
+                <div className="flex justify-between items-center">
+                  <span className="text-sm font-semibold text-blue-800">Monthly Summary</span>
+                  <div className="flex space-x-4">
+                    <span className="text-sm font-medium text-green-600">
+                      Credits: ₹{monthlyTotals.credit.toLocaleString('en-IN')}
+                    </span>
+                    <span className="text-sm font-medium text-red-600">
+                      Debits: ₹{monthlyTotals.debit.toLocaleString('en-IN')}
+                    </span>
+                    <span className="text-sm font-medium text-gray-700">
+                      Balance: ₹{(monthlyTotals.credit - monthlyTotals.debit).toLocaleString('en-IN')}
+                    </span>
+                  </div>
                 </div>
               </td>
             </tr>
 
-            {/* Iterate through all dates including today */}
-            {sortedDates.map((date) => {
-              const dailyTransactions = groupedTransactions[date];
+            {/* Daily Transaction Groups */}
+            {sortedDateKeys.map((dateKey) => {
+              const { formattedDate, transactions: dailyTransactions } = groupedTransactions[dateKey];
               const dailyTotals = calculateTotals(dailyTransactions);
-              const dateObject = new Date(date);
-              const dayOfWeek = dateObject.toLocaleString('en-US', { weekday: 'long' });
-              const isToday = date === todayDate;
+              const isToday = dateKey === todayDateKey;
+              const date = new Date(dateKey);
+              const dayOfWeek = date.toLocaleDateString('en-US', { weekday: 'long' });
 
               return (
-                <React.Fragment key={`date-group-${date}`}>
+                <React.Fragment key={`date-group-${dateKey}`}>
                   {/* Daily Summary Row */}
-                  <tr className={`${isToday ? 'bg-green-100' : 'bg-gray-200'} font-semibold`}>
-                    <td colSpan={8} className="px-4 py-2">
-                      <div className="flex justify-between">
-                        <span>
-                          {isToday ? 'Today (' : ''}{dayOfWeek}, {date}{isToday ? ')' : ''}
-                        </span>
-                        <span>Total Credits: ₹{dailyTotals.credit.toLocaleString()} | Total Debits: ₹{dailyTotals.debit.toLocaleString()}</span>
+                  <tr className={isToday ? 'bg-green-50' : 'bg-gray-50'}>
+                    <td colSpan={8} className="px-6 py-2">
+                      <div className="flex justify-between items-center">
+                        <div className="flex items-center">
+                          <span className="text-sm font-semibold">
+                            {isToday ? 'Today - ' : ''}{dayOfWeek}, {formattedDate}
+                          </span>
+                        </div>
+                        <div className="flex space-x-4">
+                          <span className="text-xs font-medium text-green-600">
+                            Credits: ₹{dailyTotals.credit.toLocaleString('en-IN')}
+                          </span>
+                          <span className="text-xs font-medium text-red-600">
+                            Debits: ₹{dailyTotals.debit.toLocaleString('en-IN')}
+                          </span>
+                        </div>
                       </div>
                     </td>
                   </tr>
 
-                  {/* Detailed Transaction Rows */}
+                  {/* Transaction Rows - Already in reverse order due to unshift */}
                   {dailyTransactions.map((txn) => (
-                    <tr key={txn._id} className="border-b hover:bg-gray-50">
-                      <td className="px-4 py-2">{new Date(txn.createdAt || txn.date || new Date()).toLocaleDateString()}</td>
-                      <td className={`px-4 py-2 font-medium ${txn.type?.toLowerCase() === 'credit' ? 'text-green-600' : 'text-red-600'}`}>
-                        {txn.type}
+                    <tr key={txn._id} className="hover:bg-gray-50">
+                      <td className="px-6 py-3 whitespace-nowrap text-sm text-gray-500">
+                        {new Date(txn.date).toLocaleDateString('en-US', {
+                          month: 'short',
+                          day: 'numeric',
+                          year: 'numeric'
+                        })}
                       </td>
-                      <td className="px-4 py-2">₹{txn.amount}</td>
-                      <td className="px-4 py-2">{txn.account?.name || 'N/A'}</td>
-                      <td className="px-4 py-2">{txn.vendor?.name || txn.vendor || 'N/A'}</td>
-                      <td className="px-4 py-2">{txn.purpose || 'N/A'}</td>
-                      <td className="px-4 py-2">{txn.addedBy?.name || 'N/A'}</td>
-                      <td className="px-4 py-2">
+                      <td className="px-6 py-3 whitespace-nowrap">
+                        <span className={`px-2 inline-flex text-xs leading-5 font-semibold rounded-full ${
+                          txn.type?.toLowerCase() === 'credit' 
+                            ? 'bg-green-100 text-green-800' 
+                            : 'bg-red-100 text-red-800'
+                        }`}>
+                          {txn.type}
+                        </span>
+                      </td>
+                      <td className="px-6 py-3 whitespace-nowrap text-sm font-medium">
+                        ₹{Number(txn.amount).toLocaleString('en-IN')}
+                      </td>
+                      <td className="px-6 py-3 whitespace-nowrap text-sm text-gray-500">
+                        {txn.account?.name || 'N/A'}
+                      </td>
+                      <td className="px-6 py-3 whitespace-nowrap text-sm text-gray-500">
+                        {txn.vendor?.name || txn.vendor || 'N/A'}
+                      </td>
+                      <td className="px-6 py-3 text-sm text-gray-500 max-w-xs truncate">
+                        {txn.purpose || 'N/A'}
+                      </td>
+                      <td className="px-6 py-3 whitespace-nowrap text-sm text-gray-500">
+                        {txn.addedBy?.name || 'N/A'}
+                      </td>
+                      <td className="px-6 py-3 whitespace-nowrap text-right text-sm font-medium">
                         <button
                           onClick={() => handleOpenModal(txn._id)}
-                          className="text-red-500 hover:text-red-700 font-medium"
+                          className="text-red-500 hover:text-red-700 transition-colors"
+                          title="Delete transaction"
                         >
-                          <Trash />
+                          <Trash size={16} />
                         </button>
                       </td>
                     </tr>
@@ -219,21 +259,21 @@ const TransactionTable = ({ transactions = [] }) => {
         title="Confirm Deletion"
       >
         <div className='p-4'>
-        <p>Are you sure you want to delete this transaction?</p>
-        <div className="flex justify-end gap-2 mt-4 ">
-          <button
-            onClick={() => setIsModalOpen(false)}
-            className="px-4 py-2 rounded bg-gray-300 hover:bg-gray-400"
-          >
-            Cancel
-          </button>
-          <button
-            onClick={handleConfirmDelete}
-            className="px-4 py-2 rounded bg-red-600 text-white hover:bg-red-700"
-          >
-            Delete
-          </button>
-        </div>
+          <p className="text-gray-700 mb-4">Are you sure you want to delete this transaction? This action cannot be undone.</p>
+          <div className="flex justify-end gap-3 mt-4">
+            <button
+              onClick={() => setIsModalOpen(false)}
+              className="px-4 py-2 rounded-md border border-gray-300 text-gray-700 hover:bg-gray-50 transition-colors"
+            >
+              Cancel
+            </button>
+            <button
+              onClick={handleConfirmDelete}
+              className="px-4 py-2 rounded-md bg-red-600 text-white hover:bg-red-700 transition-colors"
+            >
+              Delete Transaction
+            </button>
+          </div>
         </div>
       </Modal>
     </>
