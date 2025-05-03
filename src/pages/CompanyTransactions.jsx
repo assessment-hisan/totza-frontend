@@ -217,21 +217,7 @@ const CompanyTransactions = () => {
         </div>
       </div>
   
-      {/* Stats Card */}
-      <div className="bg-gradient-to-r from-blue-600 to-indigo-600 rounded-xl shadow-md p-4 text-white">
-        <div className="flex justify-between items-center">
-          <div>
-            <p className="text-sm font-medium">Total Transactions</p>
-            <p className="text-2xl font-bold">{companyTransactions.length}</p>
-          </div>
-          <div className="text-right">
-            <p className="text-sm font-medium">Current Balance</p>
-            <p className="text-2xl font-bold">
-              ₹{calculateTotalBalance(companyTransactions).toLocaleString('en-IN')}
-            </p>
-          </div>
-        </div>
-      </div>
+     
   
       {/* Transaction Table */}
       <div className="bg-white rounded-xl shadow-sm overflow-hidden border border-gray-100">
@@ -255,14 +241,7 @@ const CompanyTransactions = () => {
               <p className="text-sm text-gray-600">
                 Showing <span className="font-medium">{companyTransactions.length}</span> transactions
               </p>
-              <div className="relative">
-                <input
-                  type="text"
-                  placeholder="Search transactions..."
-                  className="pl-8 pr-4 py-2 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
-                />
-                <Search className="absolute left-3 top-2.5 h-4 w-4 text-gray-400" />
-              </div>
+              
             </div>
             <TransactionTable transactions={companyTransactions} />
           </>
