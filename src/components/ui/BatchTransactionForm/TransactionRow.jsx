@@ -44,6 +44,7 @@ const TransactionRow = ({ data, onChange, accounts, index }) => {
           value={safeData.date} 
           onChange={handleChange} 
           className="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-1 focus:ring-indigo-500 focus:border-indigo-500 text-sm" 
+          max={new Date().toISOString().split('T')[0]}
         />
       </div>
 
