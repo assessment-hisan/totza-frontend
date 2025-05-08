@@ -30,6 +30,24 @@ const Dashboard = () => {
     }
   };
 
+  // const syncMongoToGoogle = async()=> {
+  //   try {
+  //     const response = await axiosInstance.post("/api/trigger-report")
+  //     console.log(response)
+  //   } catch (error) {
+  //     console.log(error)
+  //   }
+  // }
+  
+  // const syncMongoToGoogleSheet = async()=> {
+  //   try {
+  //     const response = await axiosInstance.post("/api/trigger-sync")
+  //     console.log(response)
+  //   } catch (error) {
+  //     console.log(error)
+  //   }
+  // }
+
   const getRecentCmpnyTns = async () => {
     try {
       const res = await axiosInstance.get("company/recent")
@@ -81,6 +99,8 @@ const totalExpenses = useMemo(() => {
   useEffect(()=>{
     getUserInfo()
     getRecentCmpnyTns()
+    // syncMongoToGoogle()
+    // syncMongoToGoogleSheet()
   },[])
   
   return (

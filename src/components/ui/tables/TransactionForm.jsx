@@ -1,4 +1,8 @@
 import React, { useState } from 'react';
+// Assuming DueSelection is already created and imported
+ import DueSelection from "../../Due/DueSelection"
+
+const TRANSACTION_TYPES = ['Debit', 'Credit', 'Due'];
 
 const TransactionForm = ({ accounts, onSubmit }) => {
   const [formData, setFormData] = useState({
@@ -10,9 +14,12 @@ const TransactionForm = ({ accounts, onSubmit }) => {
     item: '',
     purpose: '',
     files: [],
+    dueDate: '',
   });
 
   const [loading, setLoading] = useState(false);
+  const [isPayingDue, setIsPayingDue] = useState(false);
+  const [selectedDue, setSelectedDue] = useState(null);
 
   const handleChange = (e) => {
     const { name, value, files } = e.target;
@@ -22,11 +29,11 @@ const TransactionForm = ({ accounts, onSubmit }) => {
       setFormData({ ...formData, [name]: value });
     }
   };
-  
+
   const handleSubmit = async (e) => {
     e.preventDefault();
     setLoading(true);
-    
+
     const data = new FormData();
     Object.entries(formData).forEach(([key, value]) => {
       if (key === 'files') {
@@ -35,6 +42,10 @@ const TransactionForm = ({ accounts, onSubmit }) => {
         data.append(key, value);
       }
     });
+
+    if (isPayingDue && selectedDue) {
+      data.append('payingDueId', selectedDue._id);
+    }
 
     try {
       await onSubmit(data);
@@ -47,7 +58,10 @@ const TransactionForm = ({ accounts, onSubmit }) => {
         item: '',
         purpose: '',
         files: [],
+        dueDate: '',
       });
+      setIsPayingDue(false);
+      setSelectedDue(null);
     } finally {
       setLoading(false);
     }
@@ -57,7 +71,7 @@ const TransactionForm = ({ accounts, onSubmit }) => {
     <form onSubmit={handleSubmit} className="m-5 space-y-4 bg-white p-6 rounded-lg shadow-md max-w-md mx-auto">
       <h2 className="text-2xl font-bold text-gray-800 mb-6 text-center">New Transaction</h2>
 
-      {/* Date Input */}
+      {/* Date */}
       <div className="space-y-1">
         <label className="block text-sm font-medium text-gray-700">Date *</label>
         <input
@@ -66,12 +80,12 @@ const TransactionForm = ({ accounts, onSubmit }) => {
           value={formData.date}
           onChange={handleChange}
           required
-          className="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-blue-500 focus:border-blue-500"
           max={new Date().toISOString().split('T')[0]}
+          className="w-full px-3 py-2 border border-gray-300 rounded-md"
         />
       </div>
 
-      {/* Amount Input */}
+      {/* Amount */}
       <div className="space-y-1">
         <label className="block text-sm font-medium text-gray-700">Amount *</label>
         <div className="relative">
@@ -82,7 +96,7 @@ const TransactionForm = ({ accounts, onSubmit }) => {
             value={formData.amount}
             onChange={handleChange}
             required
-            className="w-full pl-8 pr-3 py-2 border border-gray-300 rounded-md focus:ring-blue-500 focus:border-blue-500"
+            className="w-full pl-8 pr-3 py-2 border border-gray-300 rounded-md"
             placeholder="0.00"
             min="0"
             step="0.01"
@@ -94,15 +108,16 @@ const TransactionForm = ({ accounts, onSubmit }) => {
       <div className="space-y-1">
         <label className="block text-sm font-medium text-gray-700">Type *</label>
         <div className="flex gap-2">
-          {['Debit', 'Credit'].map((type) => (
+          {TRANSACTION_TYPES.map((type) => (
             <button
               type="button"
               key={type}
-              onClick={() => setFormData({ ...formData, type })}
-              className={`flex-1 py-2 px-3 text-sm rounded-md transition-colors ${
-                formData.type === type
-                  ? 'bg-blue-600 text-white'
-                  : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
+              onClick={() => {
+                setFormData({ ...formData, type });
+                setIsPayingDue(false); // Reset Due toggle when switching type
+              }}
+              className={`flex-1 py-2 px-3 text-sm rounded-md ${
+                formData.type === type ? 'bg-blue-600 text-white' : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
               }`}
             >
               {type}
@@ -118,8 +133,7 @@ const TransactionForm = ({ accounts, onSubmit }) => {
           name="account"
           value={formData.account}
           onChange={handleChange}
-          
-          className="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-blue-500 focus:border-blue-500"
+          className="w-full px-3 py-2 border border-gray-300 rounded-md"
         >
           <option value="">Select Account</option>
           {accounts?.map((acc) => (
@@ -130,18 +144,61 @@ const TransactionForm = ({ accounts, onSubmit }) => {
         </select>
       </div>
 
-      {/* Vendor Input */}
-      <div className="space-y-1">
-        <label className="block text-sm font-medium text-gray-700">Vendor</label>
-        <input
-          type="text"
-          name="vendor"
-          value={formData.vendor}
-          onChange={handleChange}
-          className="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-blue-500 focus:border-blue-500"
-          placeholder="Vendor name"
-        />
-      </div>
+      {/* Due Fields */}
+      {formData.type === 'Due' && (
+        <>
+          <div className="space-y-1">
+            <label className="block text-sm font-medium text-gray-700">Due Date *</label>
+            <input
+              type="date"
+              name="dueDate"
+              value={formData.dueDate || ''}
+              onChange={handleChange}
+              required
+              min={new Date().toISOString().split('T')[0]}
+              className="w-full px-3 py-2 border border-gray-300 rounded-md"
+            />
+          </div>
+          <div className="space-y-1">
+            <label className="block text-sm font-medium text-gray-700">Vendor *</label>
+            <input
+              type="text"
+              name="vendor"
+              value={formData.vendor}
+              onChange={handleChange}
+              required
+              className="w-full px-3 py-2 border border-gray-300 rounded-md"
+            />
+          </div>
+        </>
+      )}
+
+    
+      {/* Due Selection Component */}
+      {isPayingDue && (
+        <div className="space-y-1">
+          <label className="block text-sm font-medium text-gray-700">Select Due *</label>
+          <DueSelection
+            onSelect={setSelectedDue}
+            currentAmount={formData.amount}
+          />
+        </div>
+      )}
+
+      {/* Vendor Input (for non-Due) */}
+      {formData.type !== 'Due' && (
+        <div className="space-y-1">
+          <label className="block text-sm font-medium text-gray-700">Vendor</label>
+          <input
+            type="text"
+            name="vendor"
+            value={formData.vendor}
+            onChange={handleChange}
+            className="w-full px-3 py-2 border border-gray-300 rounded-md"
+            placeholder="Vendor name"
+          />
+        </div>
+      )}
 
       {/* Item Input */}
       <div className="space-y-1">
@@ -151,12 +208,12 @@ const TransactionForm = ({ accounts, onSubmit }) => {
           name="item"
           value={formData.item}
           onChange={handleChange}
-          className="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-blue-500 focus:border-blue-500"
+          className="w-full px-3 py-2 border border-gray-300 rounded-md"
           placeholder="Item purchased"
         />
       </div>
 
-      {/* Purpose Textarea */}
+      {/* Purpose */}
       <div className="space-y-1">
         <label className="block text-sm font-medium text-gray-700">Purpose *</label>
         <textarea
@@ -165,18 +222,16 @@ const TransactionForm = ({ accounts, onSubmit }) => {
           onChange={handleChange}
           required
           rows={3}
-          className="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-blue-500 focus:border-blue-500"
+          className="w-full px-3 py-2 border border-gray-300 rounded-md"
           placeholder="Transaction purpose..."
         />
       </div>
 
-    
-
-      {/* Submit Button */}
+      {/* Submit */}
       <button
         type="submit"
         disabled={loading}
-        className="w-full mt-6 py-2 px-4 bg-blue-600 hover:bg-blue-700 text-white font-medium rounded-md transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+        className="w-full mt-6 py-2 px-4 bg-blue-600 hover:bg-blue-700 text-white font-medium rounded-md disabled:opacity-50"
       >
         {loading ? 'Processing...' : 'Save Transaction'}
       </button>

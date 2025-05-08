@@ -13,6 +13,8 @@ import Items from '../pages/Items';
 import Accounts from "../pages/Accounts"
 import Reports from '../pages/Reports';
 import Settings from '../pages/Settings';
+import PayDueForm from '../components/ui/tables/PayDueForm';
+import DueDetailPage from '../components/Due/DueDetailPage';
 
 const AppRoutes = () => {
   return (
@@ -29,6 +31,8 @@ const AppRoutes = () => {
       <Route path="/accounts" element={<Accounts />} />
       <Route path="/reports" element={<Reports />} />
       <Route path="/settings" element={<Settings />} />
+      <Route path="/dues/:dueId/pay" element={<PayDueForm  />} />
+      <Route path="/dues/:dueId" element={<DueDetailPage />} />
     </Routes>
 
 
