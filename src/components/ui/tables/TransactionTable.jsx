@@ -1,4 +1,5 @@
 import React, { useState, useMemo, useEffect } from 'react';
+import { useNavigate } from 'react-router-dom';
 import Modal from "../modals/Modal";
 import { Trash } from 'lucide-react';
 import axiosInstance from '../../../utils/axiosInstance';
@@ -8,10 +9,10 @@ const groupTransactionsByDate = (transactions) => {
   if (!Array.isArray(transactions) || transactions.length === 0) {
     return {};
   }
-  
+
   return transactions.reduce((acc, txn) => {
     if (!txn) return acc;
-    
+
     const txnDate = txn.date ? new Date(txn.date) : new Date();
     const dateKey = txnDate.toISOString().split('T')[0]; // YYYY-MM-DD format for consistent sorting
     const formattedDate = txnDate.toLocaleDateString('en-US', {
@@ -19,7 +20,7 @@ const groupTransactionsByDate = (transactions) => {
       day: 'numeric',
       year: 'numeric'
     });
-    
+
     if (!acc[dateKey]) {
       acc[dateKey] = {
         formattedDate,
@@ -36,17 +37,17 @@ const calculateTotals = (transactions) => {
   if (!Array.isArray(transactions) || transactions.length === 0) {
     return { credit: 0, debit: 0 };
   }
-  
+
   return transactions.reduce(
     (totals, txn) => {
       if (!txn) return totals;
-      
+
       const type = txn.type?.toLowerCase();
       const amount = Number(txn.amount) || 0;
-      
+
       if (type === 'credit') {
         totals.credit += amount;
-      } else if (type === 'debit') {
+      } else if (type === 'debit' || type === 'due') {
         totals.debit += amount;
       }
       return totals;
@@ -56,36 +57,40 @@ const calculateTotals = (transactions) => {
 };
 
 const TransactionTable = ({ transactions = [] }) => {
+  const navigate = useNavigate();
   const [selectedId, setSelectedId] = useState(null);
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [processedTransactions, setProcessedTransactions] = useState([]);
-  
+
   useEffect(() => {
     // Ensure we always work with an array of transactions
     let validTransactions = [];
-    
+
     if (Array.isArray(transactions)) {
       validTransactions = transactions
         .filter(t => t && typeof t === 'object')
         .map(t => ({
           ...t,
-          date: t.date || t.createdAt // Use date if available, fallback to createdAt
+          date: t.date || t.createdAt, // Use date if available, fallback to createdAt
+          account: t.account || { name: 'N/A' },
+          vendor: t.vendor || { name: 'N/A' },
+          addedBy: t.addedBy || { name: 'System' }
         }));
     }
-    
+
     // Reverse the array to show newest first
     setProcessedTransactions(validTransactions.reverse());
   }, [transactions]);
 
   // Group transactions by date
-  const groupedTransactions = useMemo(() => 
-    groupTransactionsByDate(processedTransactions), 
-  [processedTransactions]);
+  const groupedTransactions = useMemo(() =>
+    groupTransactionsByDate(processedTransactions),
+    [processedTransactions]);
 
   // Calculate monthly totals
-  const monthlyTotals = useMemo(() => 
-    calculateTotals(processedTransactions), 
-  [processedTransactions]);
+  const monthlyTotals = useMemo(() =>
+    calculateTotals(processedTransactions),
+    [processedTransactions]);
 
   // Get today's date key for highlighting
   const todayDateKey = new Date().toISOString().split('T')[0];
@@ -109,12 +114,18 @@ const TransactionTable = ({ transactions = [] }) => {
     if (selectedId) {
       const success = await deleteTnx(selectedId);
       if (success) {
-        setProcessedTransactions(prev => 
+        setProcessedTransactions(prev =>
           prev.filter(txn => txn._id !== selectedId)
         );
       }
       setIsModalOpen(false);
       setSelectedId(null);
+    }
+  };
+
+  const handleRowClick = (txn) => {
+    if (txn.type === 'Due') {
+      navigate(`/dues/${txn._id}`);
     }
   };
 
@@ -200,9 +211,13 @@ const TransactionTable = ({ transactions = [] }) => {
                     </td>
                   </tr>
 
-                  {/* Transaction Rows - Already in reverse order due to unshift */}
+                  {/* Transaction Rows */}
                   {dailyTransactions.map((txn) => (
-                    <tr key={txn._id} className="hover:bg-gray-50">
+                    <tr
+                      key={txn._id}
+                      className={`hover:bg-gray-50 ${txn.type === 'Due' ? 'cursor-pointer hover:bg-yellow-50' : ''}`}
+                      onClick={() => txn.type === 'Due' && handleRowClick(txn)}
+                    >
                       <td className="px-6 py-3 whitespace-nowrap text-sm text-gray-500">
                         {new Date(txn.date).toLocaleDateString('en-US', {
                           month: 'short',
@@ -212,9 +227,11 @@ const TransactionTable = ({ transactions = [] }) => {
                       </td>
                       <td className="px-6 py-3 whitespace-nowrap">
                         <span className={`px-2 inline-flex text-xs leading-5 font-semibold rounded-full ${
-                          txn.type?.toLowerCase() === 'credit' 
-                            ? 'bg-green-100 text-green-800' 
-                            : 'bg-red-100 text-red-800'
+                          txn.type?.toLowerCase() === 'credit'
+                            ? 'bg-green-100 text-green-800'
+                            : txn.type === 'Due'
+                              ? 'bg-yellow-100 text-yellow-800'
+                              : 'bg-red-100 text-red-800'
                         }`}>
                           {txn.type}
                         </span>
@@ -232,11 +249,14 @@ const TransactionTable = ({ transactions = [] }) => {
                         {txn.purpose || 'N/A'}
                       </td>
                       <td className="px-6 py-3 whitespace-nowrap text-sm text-gray-500">
-                        {txn.addedBy?.name || 'N/A'}
+                        {txn.addedBy?.name || 'System'}
                       </td>
                       <td className="px-6 py-3 whitespace-nowrap text-right text-sm font-medium">
                         <button
-                          onClick={() => handleOpenModal(txn._id)}
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            handleOpenModal(txn._id);
+                          }}
                           className="text-red-500 hover:text-red-700 transition-colors"
                           title="Delete transaction"
                         >
