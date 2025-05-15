@@ -13,8 +13,14 @@ import Items from '../pages/Items';
 import Accounts from "../pages/Accounts"
 import Reports from '../pages/Reports';
 import Settings from '../pages/Settings';
-import PayDueForm from '../components/ui/tables/PayDueForm';
 import DueDetailPage from '../components/Due/DueDetailPage';
+import DueListPage from "../components/Due/DueListPage"
+import ProjectsList from '../components/Project/ProjectList';
+import ProjectDetails from '../components/Project/ProjectDetails';
+import WorkerDetail from '../components/Worker/WorkerDetail';
+import WorkerList from '../components/Worker/WorkerList';
+import VendorDetail from '../components/Vendor/VendorDetail';
+import VendorList from '../components/Vendor/VendorList';
 
 const AppRoutes = () => {
   return (
@@ -26,13 +32,19 @@ const AppRoutes = () => {
       <Route path="/" element={<Dashboard />} />
       <Route path="/company-transactions" element={<CompanyTransactions />} />
       <Route path="/personal-transactions" element={<PersonalTransactions />} />
-      <Route path="/vendors" element={<Vendors />} />
+      
       <Route path="/items" element={<Items />} />
       <Route path="/accounts" element={<Accounts />} />
       <Route path="/reports" element={<Reports />} />
       <Route path="/settings" element={<Settings />} />
-      <Route path="/dues/:dueId/pay" element={<PayDueForm  />} />
+      <Route path="/dues" element={<DueListPage/>} />
       <Route path="/dues/:dueId" element={<DueDetailPage />} />
+      <Route path="/projects" element={<ProjectsList />} />
+      <Route path="/project/:projectId" element={<ProjectDetails />} />
+      <Route path="/workers" element={<WorkerList />} />
+      <Route path="/workers/:workerId" element={<WorkerDetail />} />
+      <Route path="/vendors" element={<VendorList />} />
+      <Route path="/vendors/:vendorId" element={<VendorDetail />} />
     </Routes>
 
 

@@ -100,35 +100,75 @@ const totalExpenses = useMemo(() => {
     getUserInfo()
     getRecentCmpnyTns()
     // syncMongoToGoogle()
-    // syncMongoToGoogleSheet()
+    //  syncMongoToGoogleSheet()
   },[])
   
   return (
     <>
-      <Navbar userInfo={userInfo} />
-      <div className="p-6 space-y-8">
-        {/* Header Section */}
-        <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
-          <h2 className="text-3xl font-bold text-gray-800">Dashboard Overview</h2>
-          
-          {/* Quick Access Cards */}
-          <div className="flex gap-4">
-            {[
-              { path: '/vendors', icon: <Users size={22} className="text-blue-600" /> },
-              { path: '/accounts', icon: <Briefcase size={22} className="text-emerald-500" /> },
-              { path: '/items', icon: <Package size={22} className="text-amber-500" /> },
-            ].map((card) => (
-              <button
-                key={card.path}
-                onClick={() => navigate(card.path)}
-                className="p-3 bg-white rounded-xl shadow-sm hover:shadow-md transition-all duration-200 hover:-translate-y-0.5"
-                aria-label={`Go to ${card.path.slice(1)}`}
-              >
+    <Navbar userInfo={userInfo} />
+    <div className="p-6 space-y-8">
+      {/* Header Section */}
+      <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
+        <h2 className="text-3xl font-bold text-gray-800">Dashboard Overview</h2>
+        
+        {/* Quick Access Cards - Enhanced Version */}
+        <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-5 gap-3 w-full md:w-auto">
+          {[
+            { 
+              path: '/projects', 
+              label: 'Projects',
+              icon: <svg xmlns="http://www.w3.org/2000/svg" className="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2" />
+              </svg>,
+              color: 'text-purple-600'
+            },
+            { 
+              path: '/workers', 
+              label: 'Workers',
+              icon: <svg xmlns="http://www.w3.org/2000/svg" className="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0zm6 3a2 2 0 11-4 0 2 2 0 014 0zM7 10a2 2 0 11-4 0 2 2 0 014 0z" />
+              </svg>,
+              color: 'text-blue-600'
+            },
+            { 
+              path: '/vendors', 
+              label: 'Vendors',
+              icon: <svg xmlns="http://www.w3.org/2000/svg" className="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16m14 0h2m-2 0h-5m-9 0H3m2 0h5M9 7h1m-1 4h1m4-4h1m-1 4h1m-5 10v-5a1 1 0 011-1h2a1 1 0 011 1v5m-4 0h4" />
+              </svg>,
+              color: 'text-green-600'
+            },
+            { 
+              path: '/accounts', 
+              label: 'Accounts',
+              icon: <svg xmlns="http://www.w3.org/2000/svg" className="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+              </svg>,
+              color: 'text-amber-600'
+            },
+            { 
+              path: '/items', 
+              label: 'Items',
+              icon: <svg xmlns="http://www.w3.org/2000/svg" className="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M20 7l-8-4-8 4m16 0l-8 4m8-4v10l-8 4m0-10L4 7m8 4v10M4 7v10l8 4" />
+              </svg>,
+              color: 'text-red-600'
+            }
+          ].map((card) => (
+            <button
+              key={card.path}
+              onClick={() => navigate(card.path)}
+              className="flex flex-col items-center p-4 bg-white rounded-xl shadow-sm hover:shadow-md transition-all duration-200 hover:-translate-y-0.5 group"
+              aria-label={`Go to ${card.label}`}
+            >
+              <span className={`p-2 rounded-lg ${card.color} bg-opacity-10 group-hover:bg-opacity-20 transition-colors`}>
                 {card.icon}
-              </button>
-            ))}
-          </div>
+              </span>
+              <span className="mt-2 text-sm font-medium text-gray-700">{card.label}</span>
+            </button>
+          ))}
         </div>
+      </div>
   
         {/* Period Filter */}
         <div className="flex gap-3">

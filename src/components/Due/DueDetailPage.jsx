@@ -152,6 +152,7 @@ const DueDetailPage = () => {
                 <tr>
                   <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Date</th>
                   <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Amount</th>
+                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">discount</th>
                   <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Account</th>
                   <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Notes</th>
                   <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Receipt</th>
@@ -171,6 +172,11 @@ const DueDetailPage = () => {
                     <td className="px-6 py-4 whitespace-nowrap">
                       <span className="px-2 py-1 text-sm font-semibold rounded-full bg-green-100 text-green-800">
                         ₹{payment.amount?.toFixed(2)}
+                      </span>
+                    </td>
+                    <td className="px-6 py-4 whitespace-nowrap">
+                      <span className="px-2 py-1 text-sm font-semibold rounded-full bg-green-100 text-green-800">
+                        discount
                       </span>
                     </td>
                     <td className="px-6 py-4 whitespace-nowrap">
