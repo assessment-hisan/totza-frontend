@@ -61,7 +61,7 @@ const TransactionForm = ({
       formPayload.append('date', formData.date);
       formPayload.append('purpose', formData.purpose);
       formPayload.append('items', formData.items);
-      
+      console.log("entitty id" ,entityType , entityId)
       // Add entity reference
       formPayload.append(entityType, entityId);
       
@@ -80,6 +80,7 @@ const TransactionForm = ({
       await onSubmit(formPayload);
       onCancel();
     } catch (err) {
+      console.log(err)
       setError(err.response?.data?.error || err.message);
     } finally {
       setLoading(false);
@@ -109,6 +110,17 @@ const TransactionForm = ({
             onClick={() => setFormData(prev => ({ ...prev, type: 'Debit' }))}
           >
             Debit
+          </button>
+          <button
+            type="button"
+            className={`flex-1 py-2 px-4 rounded-md transition-colors ${
+              formData.type === 'Credit' 
+                ? 'bg-blue-600 text-white' 
+                : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
+            }`}
+            onClick={() => setFormData(prev => ({ ...prev, type: 'Credit' }))}
+          >
+            Credit
           </button>
           <button
             type="button"

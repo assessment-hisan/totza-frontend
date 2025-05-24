@@ -1,16 +1,18 @@
 import React, { useState } from 'react';
-// Assuming DueSelection is already created and imported
- import DueSelection from "../../Due/DueSelection"
+import DueSelection from "../../Due/DueSelection";
 
 const TRANSACTION_TYPES = ['Debit', 'Credit', 'Due'];
 
-const TransactionForm = ({ accounts, onSubmit }) => {
+const TransactionForm = ({ vendors, accounts, projects, workers, items, onSubmit }) => {
   const [formData, setFormData] = useState({
     date: '',
     type: 'Debit',
     amount: '',
     account: '',
+    project: '',
+    associationType: '', // '' means None, 'Vendor', or 'Worker'
     vendor: '',
+    worker: '',
     item: '',
     purpose: '',
     files: [],
@@ -35,13 +37,26 @@ const TransactionForm = ({ accounts, onSubmit }) => {
     setLoading(true);
 
     const data = new FormData();
-    Object.entries(formData).forEach(([key, value]) => {
-      if (key === 'files') {
-        value.forEach((file) => data.append('files', file));
-      } else {
-        data.append(key, value);
-      }
-    });
+    data.append('date', formData.date);
+    data.append('type', formData.type);
+    data.append('amount', formData.amount);
+    data.append('account', formData.account);
+    data.append('purpose', formData.purpose);
+    formData.files.forEach((file) => data.append('files', file));
+
+    if (formData.type === 'Due') {
+      data.append('dueDate', formData.dueDate);
+    }
+
+    if (formData.project) {
+      data.append('project', formData.project);
+    }
+
+    if (formData.associationType === 'Vendor' && formData.vendor) {
+      data.append('vendor', formData.vendor);
+    } else if (formData.associationType === 'Worker' && formData.worker) {
+      data.append('workers', formData.worker); // Matches CompanyTransaction schema
+    }
 
     if (isPayingDue && selectedDue) {
       data.append('payingDueId', selectedDue._id);
@@ -54,7 +69,10 @@ const TransactionForm = ({ accounts, onSubmit }) => {
         type: 'Debit',
         amount: '',
         account: '',
+        project: '',
+        associationType: '',
         vendor: '',
+        worker: '',
         item: '',
         purpose: '',
         files: [],
@@ -68,7 +86,7 @@ const TransactionForm = ({ accounts, onSubmit }) => {
   };
 
   return (
-    <form onSubmit={handleSubmit} className="m-5 space-y-4 bg-white p-6 rounded-lg shadow-md max-w-md mx-auto">
+    <div className="m-5 space-y-4 bg-white p-6 rounded-lg shadow-md max-w-md mx-auto">
       <h2 className="text-2xl font-bold text-gray-800 mb-6 text-center">New Transaction</h2>
 
       {/* Date */}
@@ -114,7 +132,7 @@ const TransactionForm = ({ accounts, onSubmit }) => {
               key={type}
               onClick={() => {
                 setFormData({ ...formData, type });
-                setIsPayingDue(false); // Reset Due toggle when switching type
+                setIsPayingDue(false);
               }}
               className={`flex-1 py-2 px-3 text-sm rounded-md ${
                 formData.type === type ? 'bg-blue-600 text-white' : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
@@ -133,6 +151,7 @@ const TransactionForm = ({ accounts, onSubmit }) => {
           name="account"
           value={formData.account}
           onChange={handleChange}
+          required
           className="w-full px-3 py-2 border border-gray-300 rounded-md"
         >
           <option value="">Select Account</option>
@@ -144,73 +163,106 @@ const TransactionForm = ({ accounts, onSubmit }) => {
         </select>
       </div>
 
-      {/* Due Fields */}
-      {formData.type === 'Due' && (
-        <>
-          <div className="space-y-1">
-            <label className="block text-sm font-medium text-gray-700">Due Date *</label>
-            <input
-              type="date"
-              name="dueDate"
-              value={formData.dueDate || ''}
-              onChange={handleChange}
-              required
-              min={new Date().toISOString().split('T')[0]}
-              className="w-full px-3 py-2 border border-gray-300 rounded-md"
-            />
-          </div>
-          <div className="space-y-1">
-            <label className="block text-sm font-medium text-gray-700">Vendor *</label>
-            <input
-              type="text"
-              name="vendor"
-              value={formData.vendor}
-              onChange={handleChange}
-              required
-              className="w-full px-3 py-2 border border-gray-300 rounded-md"
-            />
-          </div>
-        </>
-      )}
+      {/* Project Select */}
+      <div className="space-y-1">
+        <label className="block text-sm font-medium text-gray-700">Project</label>
+        <select
+          name="project"
+          value={formData.project}
+          onChange={handleChange}
+          className="w-full px-3 py-2 border border-gray-300 rounded-md"
+        >
+          <option value="">Select Project (Optional)</option>
+          {projects?.map((project) => (
+            <option key={project._id} value={project._id}>
+              {project.title}
+            </option>
+          ))}
+        </select>
+      </div>
 
-    
-      {/* Due Selection Component */}
-      {isPayingDue && (
-        <div className="space-y-1">
-          <label className="block text-sm font-medium text-gray-700">Select Due *</label>
-          <DueSelection
-            onSelect={setSelectedDue}
-            currentAmount={formData.amount}
-          />
-        </div>
-      )}
+      {/* Association Type Select */}
+      <div className="space-y-1">
+        <label className="block text-sm font-medium text-gray-700">Association</label>
+        <select
+          name="associationType"
+          value={formData.associationType}
+          onChange={(e) => {
+            const newType = e.target.value;
+            setFormData({
+              ...formData,
+              associationType: newType,
+              vendor: newType === 'Vendor' ? formData.vendor : '',
+              worker: newType === 'Worker' ? formData.worker : '',
+            });
+          }}
+          className="w-full px-3 py-2 border border-gray-300 rounded-md"
+        >
+          <option value="">None</option>
+          <option value="Vendor">Vendor</option>
+          <option value="Worker">Worker</option>
+        </select>
+      </div>
 
-      {/* Vendor Input (for non-Due) */}
-      {formData.type !== 'Due' && (
+      {/* Vendor Select */}
+      {formData.associationType === 'Vendor' && (
         <div className="space-y-1">
-          <label className="block text-sm font-medium text-gray-700">Vendor</label>
-          <input
-            type="text"
+          <label className="block text-sm font-medium text-gray-700">Vendor *</label>
+          <select
             name="vendor"
             value={formData.vendor}
             onChange={handleChange}
+            required
             className="w-full px-3 py-2 border border-gray-300 rounded-md"
-            placeholder="Vendor name"
-          />
+          >
+            <option value="">Select Vendor</option>
+            {vendors?.map((vendor) => (
+              <option key={vendor._id} value={vendor._id}>
+                {vendor.companyName}
+              </option>
+            ))}
+          </select>
+        </div>
+      )}
+
+      {/* Worker Select */}
+      {formData.associationType === 'Worker' && (
+        <div className="space-y-1">
+          <label className="block text-sm font-medium text-gray-700">Worker *</label>
+          <select
+            name="worker"
+            value={formData.worker}
+            onChange={handleChange}
+            required
+            className="w-full px-3 py-2 border border-gray-300 rounded-md"
+          >
+            <option value="">Select Worker</option>
+            {workers?.map((worker) => (
+              <option key={worker._id} value={worker._id}>
+                {worker.name}
+              </option>
+            ))}
+          </select>
         </div>
       )}
 
       {/* Item Input */}
       <div className="space-y-1">
-        <label className="block text-sm font-medium text-gray-700">Item</label>
-        <input
-          type="text"
-          name="item"
+        <label className="block text-sm font-medium text-gray-700">Item </label>
+        <select
+          name="account"
           value={formData.item}
           onChange={handleChange}
+          required
           className="w-full px-3 py-2 border border-gray-300 rounded-md"
-          placeholder="Item purchased"
-        />
+        >
+          <option value="">Select Item</option>
+          {items?.map((acc) => (
+            <option key={acc._id} value={acc._id}>
+              {acc.name}
+            </option>
+          ))}
+        </select>
       </div>
 
       {/* Purpose */}
@@ -227,15 +279,43 @@ const TransactionForm = ({ accounts, onSubmit }) => {
         />
       </div>
 
+      {/* Due Fields */}
+      {formData.type === 'Due' && (
+        <div className="space-y-1">
+          <label className="block text-sm font-medium text-gray-700">Due Date *</label>
+          <input
+            type="date"
+            name="dueDate"
+            value={formData.dueDate || ''}
+            onChange={handleChange}
+            required
+            min={new Date().toISOString().split('T')[0]}
+            className="w-full px-3 py-2 border border-gray-300 rounded-md"
+          />
+        </div>
+      )}
+
+      {/* Due Selection Component */}
+      {isPayingDue && (
+        <div className="space-y-1">
+          <label className="block text-sm font-medium text-gray-700">Select Due *</label>
+          <DueSelection
+            onSelect={setSelectedDue}
+            currentAmount={formData.amount}
+          />
+        </div>
+      )}
+
       {/* Submit */}
       <button
         type="submit"
         disabled={loading}
         className="w-full mt-6 py-2 px-4 bg-blue-600 hover:bg-blue-700 text-white font-medium rounded-md disabled:opacity-50"
+        onClick={handleSubmit}
       >
         {loading ? 'Processing...' : 'Save Transaction'}
       </button>
-    </form>
+    </div>
   );
 };
 

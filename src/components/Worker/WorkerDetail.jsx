@@ -1,11 +1,10 @@
 import React, { useState, useEffect } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import axiosInstance from '../../utils/axiosInstance';
-import TransactionTable from '../ui/tables/TransactionTable';
 import Modal from '../ui/modals/Modal';
-import { ArrowLeft, Edit, Loader, PlusCircle } from 'lucide-react';
+import { ArrowLeft, Edit, PlusCircle } from 'lucide-react';
 import WorkerForm from './WorkerForm';
-import TransactionForm from './TransactionForm';
+import TransactionForm from "../TransactionForm"
 
 
 const WorkerDetail = () => {
@@ -33,19 +32,20 @@ const WorkerDetail = () => {
       setLoading(true);
       const [workerRes, transactionsRes] = await Promise.all([
         axiosInstance.get(`worker/${workerId}`),
-        axiosInstance.get(`/worker/transactions?worker=${workerId}`)
+        axiosInstance.get(`worker/transactions?worker=${workerId}`)
       ]);
       
       setWorker(workerRes.data);
-      console.log(workerRes.data)
-      console.log(transactionsRes)
-    //   setTransactions(transactionsRes.data || []);
+      
+      console.log("transaction res", transactionsRes.data.transactions)
+      setTransactions(transactionsRes.data.transactions);
     } catch (err) {
       setError(err.response?.data?.message || 'Failed to load worker data');
     } finally {
       setLoading(false);
     }
   };
+  
   const getAccounts = async () => {
     try {
       const response = await axiosInstance.get('account');
@@ -72,8 +72,6 @@ const WorkerDetail = () => {
       console.error('Error updating worker:', err);
     }
   };
-
-
 
   if (loading) {
     return (
@@ -233,15 +231,77 @@ const WorkerDetail = () => {
         <div className="flex justify-between items-center mb-3">
           <h2 className="text-lg font-semibold text-gray-800">Transactions</h2>
           <p className="text-xs text-gray-500">
-            {workerTransactions.length} total
+            {transactions.length} total
           </p>
         </div>
         
-        {workerTransactions.length > 0 ? (
-          <TransactionTable 
-            transactions={workerTransactions} 
-            showWorker={false}
-          />
+        {transactions.length > 0 ? (
+          <div className="overflow-x-auto">
+            <table className="min-w-full bg-white rounded-lg overflow-hidden border">
+              <thead className="bg-gray-50">
+                <tr>
+                  <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                    Date
+                  </th>
+                  <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                    Description
+                  </th>
+                  <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                    Type
+                  </th>
+                  <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                    Amount
+                  </th>
+                  <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                    Status
+                  </th>
+                </tr>
+              </thead>
+              <tbody className="divide-y divide-gray-200">
+                {transactions.map((transaction) => (
+                  <tr key={transaction._id} className="hover:bg-gray-50">
+                    <td className="px-4 py-3 whitespace-nowrap text-sm text-gray-500">
+                      {formatDate(transaction.date)}
+                    </td>
+                    <td className="px-4 py-3 text-sm text-gray-500">
+                      {transaction.description || 'No description'}
+                    </td>
+                    <td className="px-4 py-3 whitespace-nowrap">
+                      <span className={`px-2 py-1 inline-flex text-xs leading-5 font-semibold rounded-full ${
+                        transaction.type === 'Credit' 
+                          ? 'bg-green-100 text-green-800' 
+                          : transaction.type === 'Debit'
+                          ? 'bg-red-100 text-red-800'
+                          : 'bg-yellow-100 text-yellow-800'
+                      }`}>
+                        {transaction.type}
+                      </span>
+                    </td>
+                    <td className="px-4 py-3 whitespace-nowrap text-sm">
+                      <span className={`font-medium ${
+                        transaction.type === 'Credit' 
+                          ? 'text-green-600' 
+                          : 'text-red-600'
+                      }`}>
+                        ₹{Number(transaction.amount).toLocaleString('en-IN')}
+                      </span>
+                    </td>
+                    <td className="px-4 py-3 whitespace-nowrap">
+                      <span className={`px-2 py-1 inline-flex text-xs leading-5 font-semibold rounded-full ${
+                        transaction.status === 'Completed' 
+                          ? 'bg-green-100 text-green-800' 
+                          : transaction.status === 'Pending'
+                          ? 'bg-yellow-100 text-yellow-800'
+                          : 'bg-gray-100 text-gray-800'
+                      }`}>
+                        {transaction.status || 'N/A'}
+                      </span>
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
         ) : (
           <div className="bg-white p-6 rounded-lg shadow-sm border border-gray-200 text-center">
             <p className="text-gray-500 mb-2 text-sm">No transactions yet</p>
@@ -261,22 +321,21 @@ const WorkerDetail = () => {
 
       <Modal isOpen={isModalOpen} onClose={() => setIsModalOpen(false)} title="Add Transaction">
       <TransactionForm
-    entityId={workerId} // or vendorId/projectId
-    entityType="workers" // or "vendor"/"project"
-    accounts={accounts}
-    onSubmit={async (formData) => {
-      try {
-       const res =  await axiosInstance.post('company', formData);
-       console.log(res)
-        fetchWorkerData(); // Refresh data
-      } catch (err) {
-        throw err;
-        
-      }
-    }}
-    onCancel={() => setIsModalOpen(false)}
-  />
-
+        entityId={workerId} // or vendorId/projectId
+        entityType="workers" // or "vendor"/"project"
+        accounts={accounts}
+        onSubmit={async (formData) => {
+          try {
+            const res = await axiosInstance.post('company', formData);
+            console.log(res)
+            fetchWorkerData(); // Refresh data
+          } catch (err) {
+            throw err;
+            
+          }
+        }}
+        onCancel={() => setIsModalOpen(false)}
+      />
       </Modal>
     </div>
   );

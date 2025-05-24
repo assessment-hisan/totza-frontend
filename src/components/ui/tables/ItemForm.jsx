@@ -1,50 +1,74 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 
-const ItemForm = ({ onSuccess }) => {
-  const [name, setName] = useState('');
-  const [rate, setRate] = useState('');
+const ItemForm = ({ initialData = {}, onSuccess, onCancel }) => {
+  const [formData, setFormData] = useState({
+    name: '',
+    ...initialData
+  });
+
+  const [isSubmitting, setIsSubmitting] = useState(false);
+
+  useEffect(() => {
+    if (initialData) {
+      setFormData({
+        name: initialData.name || '',
+      });
+    }
+  }, [initialData]);
+
+  const handleChange = (e) => {
+    const { name, value } = e.target;
+    setFormData(prev => ({
+      ...prev,
+      [name]: value
+    }));
+  };
 
   const handleSubmit = async (e) => {
     e.preventDefault();
-
-    await fetch('/api/items', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ name, rate }),
-    });
-
-    onSuccess?.();
+    setIsSubmitting(true);
+    try {
+      await onSuccess(formData);
+    } finally {
+      setIsSubmitting(false);
+    }
   };
 
   return (
-    <form onSubmit={handleSubmit} className="space-y-4">
+    <form onSubmit={handleSubmit} className="space-y-4 px-4">
       <div>
-        <label className="block font-medium">Item Name</label>
+        <label htmlFor="name" className="block text-sm font-medium text-gray-700">
+          Item Name
+        </label>
         <input
-          className="w-full p-2 border rounded"
-          value={name}
-          onChange={(e) => setName(e.target.value)}
+          id="name"
+          name="name"
+          type="text"
+          className="mt-1 block w-full border border-gray-300 rounded-md shadow-sm py-2 px-3 focus:outline-none focus:ring-indigo-500 focus:border-indigo-500"
+          value={formData.name}
+          onChange={handleChange}
           required
+          autoFocus
+          placeholder="Enter item name"
         />
       </div>
 
-      <div>
-        <label className="block font-medium">Rate</label>
-        <input
-          type="number"
-          className="w-full p-2 border rounded"
-          value={rate}
-          onChange={(e) => setRate(e.target.value)}
-          required
-        />
+      <div className="flex justify-end space-x-3 pt-2">
+        <button
+          type="button"
+          onClick={onCancel}
+          className="inline-flex justify-center py-2 px-4 border border-gray-300 shadow-sm text-sm font-medium rounded-md text-gray-700 bg-white hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500"
+        >
+          Cancel
+        </button>
+        <button
+          type="submit"
+          disabled={isSubmitting}
+          className="inline-flex justify-center py-2 px-4 border border-transparent shadow-sm text-sm font-medium rounded-md text-white bg-indigo-600 hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500"
+        >
+          {isSubmitting ? 'Saving...' : 'Save'}
+        </button>
       </div>
-
-      <button
-        type="submit"
-        className="bg-indigo-600 text-white px-4 py-2 rounded hover:bg-indigo-700"
-      >
-        Save
-      </button>
     </form>
   );
 };

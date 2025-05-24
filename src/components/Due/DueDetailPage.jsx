@@ -4,6 +4,7 @@ import axiosInstance from '../../utils/axiosInstance';
 import { format } from 'date-fns';
 import PayDueForm from '../ui/tables/PayDueForm';
 import Modal from "../ui/modals/Modal"
+
 const DueDetailPage = () => {
   const { dueId } = useParams();
   const navigate = useNavigate();
@@ -11,16 +12,16 @@ const DueDetailPage = () => {
   const [payments, setPayments] = useState([]);
   const [loading, setLoading] = useState(true);
   const [showPayModal, setShowPayModal] = useState(false)
-  useEffect(() => {
 
+  useEffect(() => {
+  
     const fetchData = async () => {
       try {
         const [dueRes, paymentsRes] = await Promise.all([
           axiosInstance.get(`due/${dueId}`),
           axiosInstance.get(`/due/${dueId}/payments`)
         ]);
-        console.log(payments)
-
+        
         setDue(dueRes.data.data);
         setPayments(paymentsRes.data.data);
       } catch (error) {

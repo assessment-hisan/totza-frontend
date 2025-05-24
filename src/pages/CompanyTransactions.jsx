@@ -10,48 +10,36 @@ import { calculateTotalBalance } from '../utils/helper';
 
 const CompanyTransactions = () => {
   const [isModalOpen, setIsModalOpen] = useState(false);
-  const [accounts, setAccounts] = useState([]);
   const [companyTransactions, setCompanyTransactions] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
   const [isBatchModalOpen, setIsBatchModalOpen] = useState(false);
   const [submitting, setSubmitting] = useState({ status: false, progress: 0 });
+  const [options, setOptions] = useState({
+    accounts: [],
+    projects: [],
+    vendors: [],
+    workers: [],
+    items: []
+  });
   const location = useLocation();
   const navigate = useNavigate();
-
-  const getAccounts = async () => {
-    try {
-      const response = await axiosInstance.get('account');
-      if (response.data) {
-        setAccounts(response.data);
-      }
-    } catch (error) {
-      console.log("Error fetching accounts:", error);
-      setError("Failed to load accounts. Please refresh the page.");
-    }
-  };
 
   const getCompanyTnx = async () => {
     setLoading(true);
     setError(null);
     try {
       const res = await axiosInstance.get('company');
-
-      // Extract the data properly based on response structure
       let transactionsData = [];
-     
       if (Array.isArray(res.data)) {
         transactionsData = res.data;
       } else if (res.data && typeof res.data === 'object') {
-        // Check if it has a data property that's an array
         if (Array.isArray(res.data.data)) {
           transactionsData = res.data.data;
         } else {
-          // Treat it as a single transaction
           transactionsData = [res.data];
         }
       }
-
       setCompanyTransactions(transactionsData);
     } catch (error) {
       console.log("Error fetching transactions:", error);
@@ -61,7 +49,27 @@ const CompanyTransactions = () => {
     }
   };
 
-  // Open modal if query param is set
+  const getOptions = async () => {
+    try {
+      const [accountRes, projectRes, vendorRes, workerRes, itemsRes] = await Promise.all([
+        axiosInstance.get('account'),
+        axiosInstance.get('project'),
+        axiosInstance.get('vendor'),
+        axiosInstance.get('worker'),
+        axiosInstance.get('item')
+      ]);
+      setOptions({
+        accounts: accountRes.data,
+        projects: projectRes.data,
+        vendors: vendorRes.data,
+        workers: workerRes.data,
+        items: itemsRes.data
+      });
+    } catch (error) {
+      console.log(error);
+    }
+  };
+
   useEffect(() => {
     const params = new URLSearchParams(location.search);
     if (params.get('openForm') === 'true') {
@@ -72,49 +80,33 @@ const CompanyTransactions = () => {
     }
   }, [location.search]);
 
-  // Open modal and update URL
   const handleAddClick = () => {
     setIsModalOpen(true);
     navigate('?openForm=true', { replace: false });
   };
 
-  // Close modal and reset URL
   const handleModalClose = () => {
     setIsModalOpen(false);
     navigate('/company-transactions', { replace: true });
   };
 
-  // Handle transaction submission
   const handleSubmit = async (formData) => {
     try {
       const res = await axiosInstance.post('company', formData);
       if (res.data) {
         setCompanyTransactions(prev => [res.data, ...prev]);
       }
-
       handleModalClose();
       getCompanyTnx();
     } catch (err) {
       console.error('Failed to add transaction:', err);
-      
     }
   };
 
   const handleBatchSubmit = async (batchData) => {
     try {
-      // 1. Set loading state
       setSubmitting({ status: true, progress: 0 });
-      
-      // 2. Prepare the data - backend expects an array directly
       const transactions = Array.isArray(batchData) ? batchData : [batchData];
-      
-      // Log what's being sent
-      console.log("Submitting batch data:", transactions);
-      
-      // Send the array directly as the payload - this is critical
-      // The backend expects the array directly, not wrapped in an object
-  
-      // 3. Make the API call with progress tracking
       const res = await axiosInstance.post('company/many', transactions, {
         onUploadProgress: (progressEvent) => {
           const percentCompleted = Math.round(
@@ -123,42 +115,25 @@ const CompanyTransactions = () => {
           setSubmitting(prev => ({ ...prev, progress: percentCompleted }));
         }
       });
-  
-      // 4. Handle response
-      console.log("Batch submission response:", res.data);
-      
       if (res.data) {
         const { successCount, failedCount, transactions: processedTxns } = res.data;
-  
-        // Update UI state if processedTxns is available
         if (Array.isArray(processedTxns)) {
           setCompanyTransactions(prev => [...processedTxns, ...prev]);
         }
-        
-        // Refresh data
         await getCompanyTnx();
-  
-        // Show success/partial success notification
         if (failedCount > 0) {
           console.log(`Processed ${successCount} transactions, ${failedCount} failed`);
         } else {
           console.log(`Successfully processed ${successCount} transactions`);
         }
-        
-        // Close the modal
         handleBatchModalClose();
       }
-  
     } catch (err) {
       console.error('Batch submission failed:', err);
-      
-      // Detailed error handling
       if (err.response) {
         const { status, data } = err.response;
         console.log("Error response data:", data);
-        
         if (status === 422 && data?.errors) {
-          // Validation errors
           console.log(`Validation failed: ${Array.isArray(data.errors) ? data.errors.join(', ') : JSON.stringify(data.errors)}`);
         } else {
           console.log(data?.message || 'Batch processing failed');
@@ -169,7 +144,6 @@ const CompanyTransactions = () => {
         console.log('Network error - please try again');
       }
     } finally {
-      // 5. Reset states
       setSubmitting({ status: false, progress: 0 });
     }
   };
@@ -185,13 +159,12 @@ const CompanyTransactions = () => {
   };
 
   useEffect(() => {
-    getAccounts();
     getCompanyTnx();
+    getOptions();
   }, []);
 
   return (
     <div className="p-4 lg:p-6 space-y-6">
-      {/* Header Section */}
       <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
         <div>
           <h2 className="text-2xl md:text-3xl font-bold text-gray-800">Company Transactions</h2>
@@ -216,10 +189,7 @@ const CompanyTransactions = () => {
           </button>
         </div>
       </div>
-  
-     
-  
-      {/* Transaction Table */}
+
       <div className="bg-white rounded-xl shadow-sm overflow-hidden border border-gray-100">
         {loading ? (
           <div className="flex justify-center items-center p-8">
@@ -229,7 +199,7 @@ const CompanyTransactions = () => {
           <div className="p-6 text-center">
             <p className="text-red-500 font-medium">{error}</p>
             <button 
-              onClick={getCompanyTransactions}
+              onClick={getCompanyTnx}
               className="mt-2 text-blue-600 hover:text-blue-800 font-medium"
             >
               Retry
@@ -241,40 +211,45 @@ const CompanyTransactions = () => {
               <p className="text-sm text-gray-600">
                 Showing <span className="font-medium">{companyTransactions.length}</span> transactions
               </p>
-              
             </div>
             <TransactionTable transactions={companyTransactions} />
           </>
         )}
       </div>
-  
-      {/* Modals */}
+
       {isModalOpen && (
         <Modal isOpen={isModalOpen} onClose={handleModalClose} size="lg">
           <div className="p-4">
             <TransactionForm
               type="company"
-              accounts={accounts}
+              accounts={options.accounts}
+              projects={options.projects}
+              vendors={options.vendors}
+              workers={options.workers}
+              items={options.items}
               onSubmit={handleSubmit}
               onSuccess={handleModalClose}
             />
           </div>
         </Modal>
       )}
-  
+
       {isBatchModalOpen && (
         <Modal isOpen={isBatchModalOpen} onClose={handleBatchModalClose} size="xl">
           <div className="p-4">
             <BatchTransactionForm
-              accounts={accounts}
+              accounts={options.accounts}
+              projects={options.projects}
+              vendors={options.vendors}
+              workers={options.workers}
+              items={options.items}
               onSubmit={handleBatchSubmit}
               onSuccess={handleBatchModalClose}
             />
           </div>
         </Modal>
       )}
-  
-      {/* Progress Indicator */}
+
       {submitting.status && (
         <div className="fixed bottom-6 right-6 bg-white p-4 shadow-xl rounded-xl z-50 border border-gray-200 w-64">
           <div className="flex justify-between items-center mb-2">

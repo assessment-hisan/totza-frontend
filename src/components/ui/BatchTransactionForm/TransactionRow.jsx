@@ -1,348 +1,225 @@
-import React, { useState, useMemo } from 'react';
-import { Check, AlertCircle, Calendar, DollarSign, User, Package, FileText, ChevronDown, ChevronUp } from 'lucide-react';
+import React from 'react';
 
-const TRANSACTION_TYPES = [
-  { id: 'Debit', icon: <ChevronDown className="w-4 h-4" />, color: 'text-red-500' },
-  { id: 'Credit', icon: <ChevronUp className="w-4 h-4" />, color: 'text-green-500' },
-  { id: 'Due', icon: <Calendar className="w-4 h-4" />, color: 'text-amber-500' }
-];
-
-const FieldWrapper = ({ label, children, required, error }) => (
-  <div className="space-y-1">
-    <label className="flex items-center text-xs font-medium text-gray-700">
-      {label}
-      {required && <span className="ml-1 text-red-500">*</span>}
-    </label>
-    {children}
-    {error && (
-      <p className="text-xs text-red-500 flex items-center mt-1">
-        <AlertCircle className="w-3 h-3 mr-1" />
-        {error}
-      </p>
-    )}
-  </div>
-);
-
-const InputField = ({ icon, name, value, onChange, error, ...rest }) => (
-  <div className="relative">
-    {icon && (
-      <div className="absolute left-2 top-1/2 transform -translate-y-1/2 text-gray-400">
-        {icon}
-      </div>
-    )}
-    <input
-      name={name}
-      value={value}
-      onChange={onChange}
-      className={`w-full px-3 py-2 ${icon ? 'pl-8' : 'pl-3'} border rounded-md text-sm transition-all duration-200 ${
-        error 
-          ? 'border-red-300 bg-red-50 focus:ring-red-500 focus:border-red-500' 
-          : 'border-gray-300 focus:ring-blue-500 focus:border-blue-500'
-      }`}
-      {...rest}
-    />
-  </div>
-);
-
-const TransactionRow = ({ data, onChange, accounts, index, onRemove }) => {
-  const defaultData = {
-    date: '', 
-    type: 'Debit', 
-    amount: '', 
-    account: '',
-    vendor: '', 
-    item: '', 
-    purpose: '', 
-    dueDate: '', 
-    files: []
+const TransactionRow = ({ data, onChange, accounts, vendors, workers, projects, items, index }) => {
+  // Ensure all data fields have defined values
+  const safeData = {
+    date: data.date || '',
+    type: data.type || 'Debit',
+    amount: data.amount || '',
+    account: data.account || '',
+    project: data.project || '',
+    associationType: data.associationType || '',
+    vendor: data.vendor || '',
+    worker: data.worker || '',
+    item: data.item || '',
+    purpose: data.purpose || ''
   };
-
-  const safeData = useMemo(() => ({ ...defaultData, ...data }), [data]);
-  const [isPayingDue, setIsPayingDue] = useState(false);
-  const [expanded, setExpanded] = useState(true);
-  
-  // Field validation
-  const errors = {
-    date: !safeData.date ? 'Required' : '',
-    amount: !safeData.amount ? 'Required' : safeData.amount <= 0 ? 'Must be greater than 0' : '',
-    account: !safeData.account && !safeData.purpose ? 'Either Account or Purpose required' : '',
-    purpose: !safeData.purpose && !safeData.account ? 'Either Purpose or Account required' : '',
-    dueDate: safeData.type === 'Due' && !safeData.dueDate ? 'Required for due' : '',
-    vendor: safeData.type === 'Due' && !safeData.vendor ? 'Required for due' : ''
-  };
-  
-  const hasErrors = Object.values(errors).some(error => error);
 
   const handleChange = (e) => {
     const { name, value } = e.target;
-    onChange(index, { ...safeData, [name]: value });
+    let updatedData = { ...safeData };
+    
+    if (name === 'associationType') {
+      updatedData = {
+        ...safeData,
+        associationType: value,
+        vendor: value === 'Vendor' ? safeData.vendor : '',
+        worker: value === 'Worker' ? safeData.worker : ''
+      };
+    } else {
+      updatedData = { ...safeData, [name]: value };
+    }
+    
+    onChange(index, updatedData);
   };
 
-  const handleTypeChange = (type) => {
-    const updated = {
-      ...safeData,
-      type,
-      vendor: type === 'Due' ? '' : safeData.vendor,
-      dueDate: type === 'Due' ? '' : safeData.dueDate
-    };
-    setIsPayingDue(type !== 'Due' ? false : isPayingDue);
-    onChange(index, updated);
+  const handleToggle = () => {
+    const newType = safeData.type === 'Debit' ? 'Credit' : 'Debit';
+    const updatedData = { ...safeData, type: newType };
+    onChange(index, updatedData);
   };
 
-  const handleDueSelect = (due) => {
-    setIsPayingDue(false);
-    onChange(index, {
-      ...safeData,
-      amount: due.remainingAmount,
-      vendor: due.vendor,
-      purpose: `Payment for due from ${due.vendor}`
-    });
-  };
-  
-  // Mock DueSelection component for demonstration
-  const DueSelection = ({ onSelect, currentAmount }) => (
-    <button 
-      onClick={() => onSelect({ remainingAmount: 1500, vendor: 'Sample Vendor' })}
-      className="w-full px-3 py-2 border border-gray-300 rounded-md bg-white text-sm text-left hover:bg-gray-50"
-    >
-      Select a due...
-    </button>
-  );
+  // Validate the current row
+  const isValidRow = 
+    safeData.date && 
+    safeData.amount && 
+    Number(safeData.amount) > 0 && 
+    safeData.purpose;
 
   return (
-    <div className={`rounded-lg border shadow-sm transition-all duration-200 ${
-      hasErrors ? 'border-red-200 bg-red-50' : 'border-gray-200 bg-white'
+    <div className={`grid grid-cols-1 md:grid-cols-12 gap-3 p-3 rounded-lg border ${
+      isValidRow ? 'bg-gray-50 border-gray-200' : 'bg-red-50 border-red-200'
     }`}>
-      {/* Header */}
-      <div className="flex items-center justify-between p-3 border-b border-gray-200 bg-gray-50 rounded-t-lg">
-        <div className="flex items-center space-x-2">
-          <span className={`inline-flex items-center justify-center w-6 h-6 rounded-full ${
-            hasErrors ? 'bg-red-100 text-red-500' : 'bg-green-100 text-green-500'
-          }`}>
-            {hasErrors ? <AlertCircle className="w-4 h-4" /> : <Check className="w-4 h-4" />}
-          </span>
-          <h3 className="font-medium text-gray-700">
-            {safeData.type} Transaction
-            {safeData.amount ? ` • ₹${safeData.amount}` : ''}
-            {safeData.vendor ? ` • ${safeData.vendor}` : ''}
-          </h3>
-        </div>
-        <div className="flex items-center space-x-2">
-          <button
-            type="button"
-            onClick={() => setExpanded(!expanded)}
-            className="p-1 rounded-md hover:bg-gray-200 text-gray-500"
-          >
-            {expanded ? (
-              <ChevronUp className="w-5 h-5" />
-            ) : (
-              <ChevronDown className="w-5 h-5" />
-            )}
-          </button>
-          {onRemove && (
-            <button
-              type="button"
-              onClick={() => onRemove(index)}
-              className="p-1 rounded-md hover:bg-red-100 text-red-500"
-            >
-              <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M6 18L18 6M6 6l12 12" />
-              </svg>
-            </button>
-          )}
+      {/* Date Input */}
+      <div className="md:col-span-2">
+        <label className="block text-xs text-gray-500 mb-1">Date *</label>
+        <input 
+          type="date" 
+          name="date" 
+          value={safeData.date} 
+          onChange={handleChange} 
+          className="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-1 focus:ring-indigo-500 focus:border-indigo-500 text-sm" 
+          max={new Date().toISOString().split('T')[0]}
+        />
+      </div>
+
+      {/* Type Toggle */}
+      <div className="md:col-span-1">
+        <label className="block text-xs text-gray-500 mb-1">Type *</label>
+        <button
+          type="button"
+          onClick={handleToggle}
+          className={`w-full px-3 py-2 rounded-md font-medium text-sm transition-colors ${
+            safeData.type === 'Debit' 
+              ? 'bg-red-100 text-red-700 hover:bg-red-200' 
+              : 'bg-green-100 text-green-700 hover:bg-green-200'
+          }`}
+        >
+          {safeData.type}
+        </button>
+      </div>
+
+      {/* Amount Input */}
+      <div className="md:col-span-2">
+        <label className="block text-xs text-gray-500 mb-1">Amount *</label>
+        <div className="relative">
+          <span className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-500">₹</span>
+          <input
+            type="number"
+            name="amount"
+            value={safeData.amount}
+            onChange={handleChange}
+            placeholder="0.00"
+            className="w-full pl-8 pr-3 py-2 border border-gray-300 rounded-md focus:ring-1 focus:ring-indigo-500 focus:border-indigo-500 text-sm"
+            min="0"
+            step="0.01"
+          />
         </div>
       </div>
-      
-      {expanded && (
-        <div className="p-4">
-          {/* Transaction Type Selection */}
-          <div className="mb-4">
-            <div className="flex items-center justify-center space-x-2">
-              {TRANSACTION_TYPES.map((type) => (
-                <button
-                  key={type.id}
-                  type="button"
-                  onClick={() => handleTypeChange(type.id)}
-                  className={`flex-1 flex items-center justify-center space-x-2 py-2 rounded-md transition-all duration-200 ${
-                    safeData.type === type.id
-                      ? 'bg-blue-600 text-white shadow-md'
-                      : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
-                  }`}
-                >
-                  <span className={safeData.type === type.id ? 'text-white' : type.color}>
-                    {type.icon}
-                  </span>
-                  <span>{type.id}</span>
-                </button>
-              ))}
-            </div>
-          </div>
 
-          <div className="grid grid-cols-1 md:grid-cols-12 gap-4">
-            {/* Main Fields */}
-            <div className="md:col-span-3">
-              <FieldWrapper label="Date" required error={errors.date}>
-                <InputField
-                  type="date"
-                  name="date"
-                  icon={<Calendar className="w-4 h-4" />}
-                  value={safeData.date}
-                  onChange={handleChange}
-                  max={new Date().toISOString().split('T')[0]}
-                  error={errors.date}
-                />
-              </FieldWrapper>
-            </div>
+      {/* Account Select */}
+      <div className="md:col-span-2">
+        <label className="block text-xs text-gray-500 mb-1">Account *</label>
+        <select
+          name="account"
+          value={safeData.account}
+          onChange={handleChange}
+          className="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-1 focus:ring-indigo-500 focus:border-indigo-500 text-sm bg-white"
+        >
+          <option value="">Select Account</option>
+          {accounts.map((account) => (
+            <option key={account._id} value={account._id}>
+              {account.name}
+            </option>
+          ))}
+        </select>
+      </div>
 
-            <div className="md:col-span-3">
-              <FieldWrapper label="Amount" required error={errors.amount}>
-                <InputField
-                  type="number"
-                  name="amount"
-                  icon={<DollarSign className="w-4 h-4" />}
-                  value={safeData.amount}
-                  onChange={handleChange}
-                  placeholder="0.00"
-                  min="0"
-                  step="0.01"
-                  error={errors.amount}
-                />
-              </FieldWrapper>
-            </div>
+      {/* Project Select */}
+      <div className="md:col-span-2">
+        <label className="block text-xs text-gray-500 mb-1">Project</label>
+        <select
+          name="project"
+          value={safeData.project}
+          onChange={handleChange}
+          className="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-1 focus:ring-indigo-500 focus:border-indigo-500 text-sm bg-white"
+        >
+          <option value="">Select Project</option>
+          {projects.map((project) => (
+            <option key={project._id} value={project._id}>
+              {project.title}
+            </option>
+          ))}
+        </select>
+      </div>
 
-            <div className="md:col-span-3">
-              <FieldWrapper 
-                label="Account" 
-                required={!safeData.purpose}
-                error={errors.account}
-              >
-                <div className={`relative ${errors.account ? 'border border-red-300 rounded-md' : ''}`}>
-                  <select
-                    name="account"
-                    value={safeData.account}
-                    onChange={handleChange}
-                    className={`w-full pl-8 pr-3 py-2 border rounded-md text-sm appearance-none bg-white ${
-                      errors.account 
-                        ? 'border-red-300 bg-red-50' 
-                        : 'border-gray-300'
-                    }`}
-                  >
-                    <option value="">Select Account</option>
-                    {accounts && accounts.map(acc => (
-                      <option key={acc._id} value={acc._id}>{acc.name}</option>
-                    ))}
-                  </select>
-                  <div className="absolute left-2 top-1/2 transform -translate-y-1/2 text-gray-400">
-                    <FileText className="w-4 h-4" />
-                  </div>
-                </div>
-              </FieldWrapper>
-            </div>
+      {/* Association Type Select */}
+      <div className="md:col-span-2">
+        <label className="block text-xs text-gray-500 mb-1">Association</label>
+        <select
+          name="associationType"
+          value={safeData.associationType}
+          onChange={handleChange}
+          className="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-1 focus:ring-indigo-500 focus:border-indigo-500 text-sm bg-white"
+        >
+          <option value="">None</option>
+          <option value="Vendor">Vendor</option>
+          <option value="Worker">Worker</option>
+        </select>
+      </div>
 
-            <div className="md:col-span-3">
-              <FieldWrapper 
-                label="Vendor" 
-                required={safeData.type === 'Due'}
-                error={errors.vendor}
-              >
-                <InputField
-                  type="text"
-                  name="vendor"
-                  icon={<User className="w-4 h-4" />}
-                  value={safeData.vendor}
-                  onChange={handleChange}
-                  placeholder="Vendor name"
-                  error={errors.vendor}
-                />
-              </FieldWrapper>
-            </div>
-
-            {/* Due-specific fields */}
-            {safeData.type === 'Due' && (
-              <div className="md:col-span-3">
-                <FieldWrapper label="Due Date" required error={errors.dueDate}>
-                  <InputField
-                    type="date"
-                    name="dueDate"
-                    icon={<Calendar className="w-4 h-4" />}
-                    value={safeData.dueDate}
-                    onChange={handleChange}
-                    min={new Date().toISOString().split('T')[0]}
-                    error={errors.dueDate}
-                  />
-                </FieldWrapper>
-              </div>
-            )}
-
-            {/* Due payment selection */}
-            {safeData.type !== 'Due' && (
-              <div className="md:col-span-3">
-                <FieldWrapper label="Pay Existing Due">
-                  <button
-                    type="button"
-                    onClick={() => setIsPayingDue(!isPayingDue)}
-                    className={`w-full px-3 py-2 text-sm rounded-md flex items-center justify-center ${
-                      isPayingDue 
-                        ? 'bg-blue-100 text-blue-700 border border-blue-300' 
-                        : 'bg-gray-100 text-gray-700 border border-gray-300 hover:bg-gray-200'
-                    }`}
-                  >
-                    {isPayingDue ? 'Cancel' : 'Select Due to Pay'}
-                  </button>
-                </FieldWrapper>
-              </div>
-            )}
-
-            {isPayingDue && (
-              <div className="md:col-span-3">
-                <FieldWrapper label="Select Due">
-                  <DueSelection onSelect={handleDueSelect} currentAmount={safeData.amount} />
-                </FieldWrapper>
-              </div>
-            )}
-
-            <div className="md:col-span-3">
-              <FieldWrapper label="Item">
-                <InputField
-                  type="text"
-                  name="item"
-                  icon={<Package className="w-4 h-4" />}
-                  value={safeData.item}
-                  onChange={handleChange}
-                  placeholder="Item description"
-                />
-              </FieldWrapper>
-            </div>
-
-            {/* Purpose field - full width at bottom */}
-            <div className="md:col-span-12">
-              <FieldWrapper 
-                label="Purpose" 
-                required={!safeData.account}
-                error={errors.purpose}
-              >
-                <textarea
-                  name="purpose"
-                  value={safeData.purpose}
-                  onChange={handleChange}
-                  rows={2}
-                  placeholder="Describe the purpose of this transaction"
-                  className={`w-full px-3 py-2 border rounded-md text-sm ${
-                    errors.purpose 
-                      ? 'border-red-300 bg-red-50' 
-                      : 'border-gray-300'
-                  }`}
-                />
-              </FieldWrapper>
-            </div>
-          </div>
+      {/* Vendor Select - shown only when associationType is Vendor */}
+      {safeData.associationType === 'Vendor' && (
+        <div className="md:col-span-2">
+          <label className="block text-xs text-gray-500 mb-1">Vendor *</label>
+          <select
+            name="vendor"
+            value={safeData.vendor}
+            onChange={handleChange}
+            className="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-1 focus:ring-indigo-500 focus:border-indigo-500 text-sm bg-white"
+          >
+            <option value="">Select Vendor</option>
+            {vendors.map((vendor) => (
+              <option key={vendor._id} value={vendor._id}>
+                {vendor.companyName}
+              </option>
+            ))}
+          </select>
         </div>
       )}
+
+      {/* Worker Select - shown only when associationType is Worker */}
+      {safeData.associationType === 'Worker' && (
+        <div className="md:col-span-2">
+          <label className="block text-xs text-gray-500 mb-1">Worker *</label>
+          <select
+            name="worker"
+            value={safeData.worker}
+            onChange={handleChange}
+            className="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-1 focus:ring-indigo-500 focus:border-indigo-500 text-sm bg-white"
+          >
+            <option value="">Select Worker</option>
+            {workers.map((worker) => (
+              <option key={worker._id} value={worker._id}>
+                {worker.name}
+              </option>
+            ))}
+          </select>
+        </div>
+      )}
+
+      {/* Item Select */}
+      <div className="md:col-span-2">
+        <label className="block text-xs text-gray-500 mb-1">Item</label>
+        <select
+          name="item"
+          value={safeData.item}
+          onChange={handleChange}
+          className="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-1 focus:ring-indigo-500 focus:border-indigo-500 text-sm bg-white"
+        >
+          <option value="">Select Item</option>
+          {items.map((item) => (
+            <option key={item._id} value={item._id}>
+              {item.name}
+            </option>
+          ))}
+        </select>
+      </div>
+
+      {/* Purpose Input */}
+      <div className="md:col-span-6">
+        <label className="block text-xs text-gray-500 mb-1">Purpose *</label>
+        <input
+          type="text"
+          name="purpose"
+          value={safeData.purpose}
+          onChange={handleChange}
+          placeholder="Purpose"
+          className="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-1 focus:ring-indigo-500 focus:border-indigo-500 text-sm"
+        />
+      </div>
     </div>
   );
 };
 
-// Example usage for display
-
-
-export default TransactionRow
+export default TransactionRow;

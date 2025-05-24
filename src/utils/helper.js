@@ -1,3 +1,4 @@
+
 export const  validateEmail = (email) => {
     const regex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
     return regex.test(email)
@@ -100,3 +101,4 @@ export  const getStatusColor = (status) => {
       return 'bg-gray-100 text-gray-800';
   }
 };
+

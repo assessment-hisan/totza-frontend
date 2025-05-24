@@ -66,8 +66,8 @@ const PayDueForm = ({ dueId, accounts, maxAmount, onCancel }) => {
               value={formData.amount}
               onChange={handleChange}
               max={maxAmount}
-              min="0.01"
-              step="0.01"
+              min="0"
+              step="0"
               className="w-full px-3 py-2 border border-gray-300 rounded-md"
               required
             />

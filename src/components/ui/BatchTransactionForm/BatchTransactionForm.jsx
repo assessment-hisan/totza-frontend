@@ -13,7 +13,7 @@ const defaultRow = () => ({
   purpose: ''
 });
 
-const BatchTransactionForm = ({ accounts, onSubmit }) => {
+const BatchTransactionForm = ({ vendors, items, projects, workers, accounts, onSubmit }) => {
   const [rows, setRows] = useState(Array(5).fill().map(defaultRow));
   const [errors, setErrors] = useState({});
   const [loading, setLoading] = useState(false);
@@ -80,6 +80,10 @@ const BatchTransactionForm = ({ accounts, onSubmit }) => {
             data={row}
             onChange={handleRowChange}
             accounts={accounts}
+            items={items}
+            vendors={vendors}
+            projects={projects}
+            workers={workers}
           />
         ))}
       </div>

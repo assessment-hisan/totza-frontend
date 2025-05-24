@@ -226,13 +226,12 @@ const TransactionTable = ({ transactions = [] }) => {
                         })}
                       </td>
                       <td className="px-6 py-3 whitespace-nowrap">
-                        <span className={`px-2 inline-flex text-xs leading-5 font-semibold rounded-full ${
-                          txn.type?.toLowerCase() === 'credit'
+                        <span className={`px-2 inline-flex text-xs leading-5 font-semibold rounded-full ${txn.type?.toLowerCase() === 'credit'
                             ? 'bg-green-100 text-green-800'
                             : txn.type === 'Due'
                               ? 'bg-yellow-100 text-yellow-800'
                               : 'bg-red-100 text-red-800'
-                        }`}>
+                          }`}>
                           {txn.type}
                         </span>
                       </td>
@@ -243,7 +242,9 @@ const TransactionTable = ({ transactions = [] }) => {
                         {txn.account?.name || 'N/A'}
                       </td>
                       <td className="px-6 py-3 whitespace-nowrap text-sm text-gray-500">
-                        {txn.vendor?.name || txn.vendor || 'N/A'}
+                        {typeof txn.vendor === 'object' && txn.vendor !== null
+                          ? (txn.vendor.companyName || 'N/A')
+                          : (typeof txn.vendor === 'string' ? txn.vendor : 'N/A')}
                       </td>
                       <td className="px-6 py-3 text-sm text-gray-500 max-w-xs truncate">
                         {txn.purpose || 'N/A'}
