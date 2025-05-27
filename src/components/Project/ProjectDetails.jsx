@@ -37,7 +37,7 @@ const ProjectDetails = () => {
           axiosInstance.get('/account'),
           axiosInstance.get('/vendor')
         ]);
-
+        console.log(transactions.data)
         setTransactions(transactionsRes.data || []);
         setAccounts(accountsRes.data || []);
         setVendors(vendorsRes.data || []);
@@ -331,40 +331,13 @@ const ProjectDetails = () => {
 
         {projectTransactions.length > 0 ? (
           <div>
-            <div className="hidden sm:block">
+            <div className="">
               <TransactionTable
                 transactions={projectTransactions}
                 onDelete={handleDeleteTransaction}
               />
             </div>
-            <div className="sm:hidden space-y-3">
-              {projectTransactions.map((transaction) => (
-                <div key={transaction.id} className="bg-white rounded-lg shadow-sm border border-gray-200 p-3">
-                  <div className="flex justify-between items-start mb-2">
-                    <div>
-                      <p className="font-medium text-gray-800">{transaction.description}</p>
-                      <p className="text-xs text-gray-500">
-                        {formatDate(transaction.date)} • {transaction.category}
-                      </p>
-                    </div>
-                    <div className={`px-2 py-1 rounded-md text-xs font-medium ${transaction.type === 'credit' ? 'bg-green-100 text-green-800' : 'bg-red-100 text-red-800'}`}>
-                      {transaction.type === 'credit' ? '+' : '-'}₹{Number(transaction.amount).toLocaleString('en-IN')}
-                    </div>
-                  </div>
-                  <div className="flex justify-between items-center mt-2 pt-2 border-t border-gray-100">
-                    <p className="text-xs text-gray-500">
-                      From: {transaction.fromAccount}
-                    </p>
-                    <button
-                      onClick={() => handleDeleteTransaction(transaction.id)}
-                      className="text-red-500 hover:text-red-700"
-                    >
-                      <Trash2 className="w-4 h-4" />
-                    </button>
-                  </div>
-                </div>
-              ))}
-            </div>
+            
           </div>
         ) : (
           <div className="bg-white p-6 rounded-lg shadow-sm border border-gray-200 text-center">

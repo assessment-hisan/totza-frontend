@@ -1,9 +1,9 @@
 import React from 'react';
 import { X, AlertTriangle } from 'lucide-react';
 
-const ConfirmModal = ({ isOpen, onClose, onConfirm, title, message }) => {
+const ConfirmModal = ({ isOpen, onClose, onConfirm, title, message, id }) => {
   if (!isOpen) return null;
-
+  console.log(id)
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/80 backdrop-blur-sm">
       <div className="bg-white rounded-xl shadow-lg w-full max-w-md mx-4 p-6 relative">
@@ -27,7 +27,7 @@ const ConfirmModal = ({ isOpen, onClose, onConfirm, title, message }) => {
               Cancel
             </button>
             <button
-              onClick={onConfirm}
+              onClick={(e) => onConfirm(e, id)}
               className="px-4 py-2 bg-red-600 text-white rounded-lg hover:bg-red-700"
             >
               Delete
@@ -38,5 +38,6 @@ const ConfirmModal = ({ isOpen, onClose, onConfirm, title, message }) => {
     </div>
   );
 };
+
 
 export default ConfirmModal;

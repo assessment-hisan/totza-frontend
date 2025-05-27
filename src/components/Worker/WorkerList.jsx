@@ -5,6 +5,7 @@ import WorkerForm from './WorkerForm';
 import { PlusCircle, Trash2, Loader } from 'lucide-react';
 import ConfirmModal from '../ui/modals/ConfirmModal';
 import { useNavigate } from 'react-router-dom';
+import { useParams } from 'react-router-dom';
 
 const WorkerList = () => {
   const [workers, setWorkers] = useState([]);
@@ -12,12 +13,15 @@ const WorkerList = () => {
   const [isDeleteModalOpen, setIsDeleteModalOpen] = useState(false);
   const [workerToDelete, setWorkerToDelete] = useState(null);
   const [loading, setLoading] = useState(true);
+  
+ 
 
   const navigate = useNavigate();
 
   const fetchWorkers = async () => {
     try {
       const res = await axiosInstance.get('worker');
+      console.log(res.data[0]._id)
       setWorkers(res.data);
     } catch (error) {
       console.error('Error fetching workers:', error);
@@ -25,10 +29,21 @@ const WorkerList = () => {
       setLoading(false);
     }
   };
-
-  const handleDelete = async (workerId) => {
+  const fetchVendors = async () => {
     try {
-      await axiosInstance.delete(`/workers/${workerId}`);
+      const res = await axiosInstance.get('vendor');
+      console.log("vendors",res.data)
+      setVendors(res.data || []);
+    } catch (error) {
+      console.error('Error fetching vendors:', error);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const handleDelete = async (e, workerId) => {
+    try {
+      await axiosInstance.delete(`worker/${workerId}`);
       fetchWorkers();
       setIsDeleteModalOpen(false);
     } catch (error) {
@@ -46,6 +61,7 @@ const WorkerList = () => {
   
   useEffect(() => {
     fetchWorkers();
+    fetchVendors();
   }, []);
 
   return (
@@ -130,8 +146,9 @@ const WorkerList = () => {
       <ConfirmModal
         isOpen={isDeleteModalOpen}
         onClose={() => setIsDeleteModalOpen(false)}
-        onConfirm={() => handleDelete(workerToDelete)}
-        title="Delete Worker?"
+        onConfirm={handleDelete}
+        id={workerToDelete}
+        title="Delete worker?"
         message="This action cannot be undone. Are you sure?"
       />
     </div>

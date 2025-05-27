@@ -4,7 +4,7 @@ import axiosInstance from '../../utils/axiosInstance';
 import { format } from 'date-fns';
 import PayDueForm from '../ui/tables/PayDueForm';
 import Modal from "../ui/modals/Modal"
-
+import {Trash2} from 'lucide-react'
 const DueDetailPage = () => {
   const { dueId } = useParams();
   const navigate = useNavigate();
@@ -12,16 +12,18 @@ const DueDetailPage = () => {
   const [payments, setPayments] = useState([]);
   const [loading, setLoading] = useState(true);
   const [showPayModal, setShowPayModal] = useState(false)
+  const [showDeleteModal, setShowDeleteModal] = useState(false);
+  const [selectedPaymentId, setSelectedPaymentId] = useState(null);
 
   useEffect(() => {
-  
+
     const fetchData = async () => {
       try {
         const [dueRes, paymentsRes] = await Promise.all([
           axiosInstance.get(`due/${dueId}`),
           axiosInstance.get(`/due/${dueId}/payments`)
         ]);
-        
+        console.log(dueRes.data.data.payments)
         setDue(dueRes.data.data);
         setPayments(paymentsRes.data.data);
       } catch (error) {
@@ -44,7 +46,7 @@ const DueDetailPage = () => {
   if (!due) return <div className="p-8 text-center">Due not found</div>;
 
   const paidAmount = payments?.reduce((sum, payment) => sum + payment.amount, 0);
-  const remainingAmount = due.amount - paidAmount;
+  const remainingAmount = due.amount - paidAmount ;
 
   return (
     <div className="container mx-auto p-4 max-w-6xl">
@@ -58,8 +60,8 @@ const DueDetailPage = () => {
           onClick={() => setShowPayModal(true)}
           disabled={remainingAmount <= 0}
           className={`px-4 py-2 rounded-md flex items-center gap-2 transition-colors ${remainingAmount <= 0
-              ? 'bg-gray-200 text-gray-500 cursor-not-allowed'
-              : 'bg-blue-600 hover:bg-blue-700 text-white shadow-md hover:shadow-lg'
+            ? 'bg-gray-200 text-gray-500 cursor-not-allowed'
+            : 'bg-blue-600 hover:bg-blue-700 text-white shadow-md hover:shadow-lg'
             }`}
         >
           <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" viewBox="0 0 20 20" fill="currentColor">
@@ -139,8 +141,8 @@ const DueDetailPage = () => {
               onClick={() => setShowPayModal(true)}
               disabled={remainingAmount <= 0}
               className={`mt-4 px-4 py-2 rounded-md text-sm ${remainingAmount <= 0
-                  ? 'bg-gray-200 text-gray-500 cursor-not-allowed'
-                  : 'bg-blue-600 hover:bg-blue-700 text-white'
+                ? 'bg-gray-200 text-gray-500 cursor-not-allowed'
+                : 'bg-blue-600 hover:bg-blue-700 text-white'
                 }`}
             >
               Make First Payment
@@ -156,7 +158,7 @@ const DueDetailPage = () => {
                   <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">discount</th>
                   <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Account</th>
                   <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Notes</th>
-                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Receipt</th>
+                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Actions</th>
                 </tr>
               </thead>
               <tbody className="bg-white divide-y divide-gray-200">
@@ -200,22 +202,16 @@ const DueDetailPage = () => {
                     <td className="px-6 py-4">
                       <div className="text-sm text-gray-900 max-w-xs truncate">{payment.purpose}</div>
                     </td>
-                    <td className="px-6 py-4 whitespace-nowrap">
-                      {payment.files?.length > 0 ? (
-                        <a
-                          href={payment.files[0]}
-                          target="_blank"
-                          rel="noopener noreferrer"
-                          className="text-blue-600 hover:text-blue-800 text-sm font-medium flex items-center gap-1"
-                        >
-                          <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" viewBox="0 0 20 20" fill="currentColor">
-                            <path fillRule="evenodd" d="M4 4a2 2 0 012-2h4.586A2 2 0 0112 2.586L15.414 6A2 2 0 0116 7.414V16a2 2 0 01-2 2H6a2 2 0 01-2-2V4zm2 6a1 1 0 011-1h6a1 1 0 110 2H7a1 1 0 01-1-1zm1 3a1 1 0 100 2h6a1 1 0 100-2H7z" clipRule="evenodd" />
-                          </svg>
-                          View
-                        </a>
-                      ) : (
-                        <span className="text-gray-400 text-sm">No receipt</span>
-                      )}
+                    <td className="px-6 py-4 whitespace-nowrap text-right text-sm font-medium">
+                      <button
+                        onClick={() => {
+                          setSelectedPaymentId(payment._id);
+                          setShowDeleteModal(true);
+                        }}
+                        className="text-red-600 hover:text-red-800 flex items-center"
+                      >
+                        <Trash2/>
+                      </button>
                     </td>
                   </tr>
                 ))}
@@ -230,13 +226,42 @@ const DueDetailPage = () => {
         <PayDueForm
           dueId={dueId}
           // accounts={accounts}
-          maxAmount={remainingAmount}
+          maxAmount={remainingAmount }
           onSuccess={(newPayment) => {
             setPayments(prev => [newPayment, ...prev]);
             setShowPayModal(false);
           }}
           onCancel={() => setShowPayModal(false)}
         />
+      </Modal>
+      <Modal isOpen={showDeleteModal} onClose={() => setShowDeleteModal(false)}>
+        <div className="p-4">
+          <h2 className="text-lg font-semibold text-gray-800 mb-4">Confirm Deletion</h2>
+          <p className="text-gray-600 mb-6">Are you sure you want to delete this payment?</p>
+          <div className="flex justify-end gap-2">
+            <button
+              onClick={() => setShowDeleteModal(false)}
+              className="px-4 py-2 bg-gray-100 text-gray-700 rounded-md hover:bg-gray-200"
+            >
+              Cancel
+            </button>
+            <button
+              onClick={async () => {
+                try {
+                  await axiosInstance.delete(`due/${dueId}/payments/${selectedPaymentId}`)
+                  setPayments(prev => prev.filter(p => p._id !== selectedPaymentId));
+                  setShowDeleteModal(false);
+                } catch (err) {
+                  console.error('Error deleting payment:', err);
+                  // Optionally show a toast or error message here
+                }
+              }}
+              className="px-4 py-2 bg-red-600 text-white rounded-md hover:bg-red-700"
+            >
+              Delete
+            </button>
+          </div>
+        </div>
       </Modal>
     </div>
   );

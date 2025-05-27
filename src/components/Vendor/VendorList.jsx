@@ -1,7 +1,7 @@
 import React, { useEffect, useState } from 'react';
 import axiosInstance from '../../utils/axiosInstance';
 import Modal from "../ui/modals/Modal";
-import { PlusCircle, Trash2, Loader } from 'lucide-react';
+import { PlusCircle, Trash2 } from 'lucide-react';
 import ConfirmModal from '../ui/modals/ConfirmModal';
 import { useNavigate } from 'react-router-dom';
 import VendorForm from './Vendorform';
@@ -18,7 +18,7 @@ const VendorList = () => {
   const fetchVendors = async () => {
     try {
       const res = await axiosInstance.get('vendor');
-      setVendors(res.data);
+      setVendors(res.data || []);
     } catch (error) {
       console.error('Error fetching vendors:', error);
     } finally {
@@ -27,10 +27,12 @@ const VendorList = () => {
   };
 
   const handleDelete = async (vendorId) => {
+    if (!vendorId) return;
     try {
       await axiosInstance.delete(`/vendor/${vendorId}`);
       fetchVendors();
       setIsDeleteModalOpen(false);
+      setVendorToDelete(null);
     } catch (error) {
       console.error('Error deleting vendor:', error);
     }
@@ -64,7 +66,7 @@ const VendorList = () => {
           <table className="min-w-full divide-y divide-gray-200">
             <thead className="bg-gray-50">
               <tr>
-                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">vendor</th>
+                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Vendor</th>
                 <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Contact</th>
                 <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Type</th>
                 <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Actions</th>
@@ -77,12 +79,10 @@ const VendorList = () => {
                   className="hover:bg-gray-50 cursor-pointer"
                   onClick={() => navigate(`/vendors/${vendor._id}`)}
                 >
-                 
                   <td className="px-6 py-4 whitespace-nowrap text-gray-500">{vendor.companyName}</td>
                   <td className="px-6 py-4 whitespace-nowrap text-gray-500">{vendor.contactNumber}</td>
                   <td className="px-6 py-4 whitespace-nowrap text-gray-500">{vendor.vendorType}</td>
-                 
-                  <td className="px-6 py-3 flex justify-center whitespace-nowrap text-right text-sm font-medium">
+                  <td className="px-6 py-3 flex justify-center whitespace-nowrap text-sm font-medium">
                     <button
                       onClick={(e) => {
                         e.stopPropagation();
@@ -90,8 +90,9 @@ const VendorList = () => {
                         setIsDeleteModalOpen(true);
                       }}
                       className="text-red-600 hover:text-red-900"
+                      title="Delete Vendor"
                     >
-                      <Trash2 className="w-6 h-6 " />
+                      <Trash2 className="w-6 h-6" />
                     </button>
                   </td>
                 </tr>
@@ -101,16 +102,21 @@ const VendorList = () => {
         </div>
       )}
 
-      <Modal isOpen={isModalOpen} onClose={() => setIsModalOpen(false)} title="Add Vendor">
+      <Modal
+        isOpen={isModalOpen}
+        onClose={() => setIsModalOpen(false)}
+        title="Add Vendor"
+      >
         <VendorForm onClose={() => setIsModalOpen(false)} refreshVendors={fetchVendors} />
       </Modal>
 
       <ConfirmModal
         isOpen={isDeleteModalOpen}
         onClose={() => setIsDeleteModalOpen(false)}
-        onConfirm={() => handleDelete(vendorToDelete)}
+        onConfirm={handleDelete}
+        id={vendorToDelete}
         title="Delete Vendor?"
-        message="This action cannot be undone. Are you sure?"
+        message="This action cannot be undone. Are you sure you want to delete this vendor?"
       />
     </div>
   );

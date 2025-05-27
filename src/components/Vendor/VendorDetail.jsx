@@ -3,7 +3,7 @@ import { useParams, useNavigate } from 'react-router-dom';
 import axiosInstance from '../../utils/axiosInstance';
 import { format } from 'date-fns';
 import Modal from '../ui/modals/Modal';
-import { ArrowLeft, Edit, PlusCircle, Download } from 'lucide-react';
+import { ArrowLeft, Edit, PlusCircle, Download, Trash2 } from 'lucide-react';
 import VendorForm from './Vendorform';
 import TransactionForm from '../TransactionForm';
 import { jsPDF } from 'jspdf';
@@ -49,19 +49,19 @@ const VendorDetail = () => {
     const pdf = new jsPDF('l', 'pt', 'a4');
     const vendorName = vendor.companyName;
     const date = format(new Date(), 'dd MMM yyyy');
-    
+
     // Add title
     pdf.setFontSize(18);
     pdf.text(` ${vendorName} - Transaction Report `, 40, 40);
     pdf.setFontSize(12);
     pdf.text(`Generated on: ${date}`, 40, 60);
-    
+
     // Add vendor info
     pdf.setFontSize(12);
     pdf.text(`Vendor Type: ${vendor.vendorType}`, 40, 80);
     pdf.text(`Contact: ${vendor.contactNumber}`, 40, 95);
     pdf.text(`Address: ${vendor.address}`, 40, 110);
-    
+
     // Add financial summary
     pdf.setFontSize(14);
     pdf.text('Financial Summary', 40, 140);
@@ -69,11 +69,11 @@ const VendorDetail = () => {
     pdf.text(`Total Credits: ${totals.credits.toLocaleString('en-IN')}`, 40, 160);
     pdf.text(`Total Debits: ${totals.debits.toLocaleString('en-IN')}`, 40, 175);
     pdf.text(`Current Balance: ${balance.toLocaleString('en-IN')}`, 40, 190);
-    
+
     // Add transactions table header
     pdf.setFontSize(14);
     pdf.text('Transactions', 40, 220);
-    
+
     // Create table
     const headers = ['Date', 'Type', 'Amount', 'Discount', 'Due Date', 'Added By', 'Purpose'];
     const rows = transactions.map(txn => [
@@ -85,11 +85,11 @@ const VendorDetail = () => {
       txn.addedBy?.name || 'System',
       txn.purpose || 'System'
     ]);
-    
+
     // Simple table implementation
     pdf.setFontSize(10);
     let y = 240;
-    
+
     // Table header
     pdf.setFillColor(240, 240, 240);
     pdf.rect(40, y, 730, 20, 'F');
@@ -99,7 +99,7 @@ const VendorDetail = () => {
       pdf.text(header, 50 + (i * 90), y + 15);
     });
     y += 20;
-    
+
     // Table rows
     pdf.setFont(undefined, 'normal');
     rows.forEach((row, rowIndex) => {
@@ -107,20 +107,28 @@ const VendorDetail = () => {
         pdf.addPage();
         y = 40;
       }
-      
+
       row.forEach((cell, cellIndex) => {
         pdf.text(cell, 50 + (cellIndex * 90), y + 15);
       });
       y += 20;
     });
-    
+
     // Save the PDF
     pdf.save(`${vendorName.replace(/ /g, '_')}_transactions_${date.replace(/ /g, '_')}.pdf`);
   };
-
+  const handleDeleteTransaction = async (txnId) => {
+    try {
+      await axiosInstance.delete(`/company/${txnId}`);
+      setTransactions((prev) => prev.filter((t) => t._id !== txnId));
+    } catch (err) {
+      console.error('Error deleting transaction:', err);
+      setError(err.response?.data?.message || 'Failed to delete transaction');
+    }
+  };
   useEffect(() => {
     fetchVendorData();
-    
+
     getAccounts();
   }, [vendorId]);
 
@@ -178,7 +186,7 @@ const VendorDetail = () => {
         >
           <ArrowLeft className="w-4 h-4 mr-1" /> Back
         </button>
-  
+
         <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 mb-6">
           <div>
             <h1 className="text-2xl font-bold text-gray-800">{vendor.companyName}</h1>
@@ -193,7 +201,7 @@ const VendorDetail = () => {
             </button>
           </div>
         </div>
-  
+
         {/* Vendor Details Section - Redesigned */}
         <div className="bg-white p-4 rounded-lg shadow-sm border mb-6">
           <div className="flex justify-between items-center mb-4">
@@ -206,30 +214,30 @@ const VendorDetail = () => {
               <Edit className="w-4 h-4" /> Edit
             </button>
           </div>
-  
+
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
             <div className="bg-gray-50 p-3 rounded-lg">
               <h3 className="text-xs font-medium text-gray-500">Contact Number</h3>
               <p className="text-lg font-semibold mt-1">{vendor.contactNumber || '-'}</p>
             </div>
-            
+
             {/* <div className="bg-gray-50 p-3 rounded-lg">
               <h3 className="text-xs font-medium text-gray-500">type</h3>
               <p className="text-lg font-semibold mt-1">{vendor.type || '-'}</p>
             </div> */}
-            
+
             {/* <div className="bg-gray-50 p-3 rounded-lg">
               <h3 className="text-xs font-medium text-gray-500">GST Number</h3>
               <p className="text-lg font-semibold mt-1">{vendor.gstNumber || '-'}</p>
             </div> */}
-            
+
             <div className="bg-gray-50 p-3 rounded-lg">
               <h3 className="text-xs font-medium text-gray-500">Address</h3>
               <p className="text-lg font-semibold mt-1">{vendor.address || '-'}</p>
             </div>
           </div>
         </div>
-  
+
         {/* Financial Overview */}
         <div className="bg-white p-4 rounded-lg shadow-sm border mb-6">
           <h2 className="text-lg font-semibold text-gray-800 mb-3">Financial Overview</h2>
@@ -254,7 +262,7 @@ const VendorDetail = () => {
             </div>
           </div>
         </div>
-  
+
         {/* Transactions Section */}
         <div className="mb-6">
           <div className="flex justify-between items-center mb-3">
@@ -271,7 +279,7 @@ const VendorDetail = () => {
               </button>
             </div>
           </div>
-  
+
           <div id="transactions-pdf" className="overflow-hidden rounded-xl border border-gray-200 bg-white shadow-sm">
             <table className="w-full divide-y divide-gray-200">
               <thead className="bg-gradient-to-r from-gray-50 to-gray-100">
@@ -282,6 +290,7 @@ const VendorDetail = () => {
                   <th className="px-6 py-3 text-left text-xs font-medium text-gray-700 uppercase tracking-wider">Discount</th>
                   <th className="px-6 py-3 text-left text-xs font-medium text-gray-700 uppercase tracking-wider">Due Date</th>
                   <th className="px-6 py-3 text-left text-xs font-medium text-gray-700 uppercase tracking-wider">Added By</th>
+                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-700 uppercase tracking-wider">Actions</th>
                 </tr>
               </thead>
               <tbody className="bg-white divide-y divide-gray-200">
@@ -322,13 +331,23 @@ const VendorDetail = () => {
                         <span>{txn.addedBy?.name || 'System'}</span>
                       </div>
                     </td>
+                    <td className="px-6 py-4 whitespace-nowrap text-sm">
+                      <button
+                        onClick={() => handleDeleteTransaction(txn._id)}
+                        className="text-red-600 hover:text-red-800 text-sm"
+                        title="Delete Transaction"
+                      >
+                        <Trash2/>
+                      </button>
+                    </td>
+
                   </tr>
                 ))}
               </tbody>
             </table>
           </div>
         </div>
-  
+
         {/* Add Transaction Modal */}
         <Modal isOpen={isModalOpen} onClose={() => setIsModalOpen(false)} title="Add Transaction">
           <TransactionForm
@@ -348,7 +367,7 @@ const VendorDetail = () => {
             onCancel={() => setIsModalOpen(false)}
           />
         </Modal>
-  
+
         {/* Edit Vendor Modal */}
         <Modal isOpen={isEditModalOpen} onClose={() => setIsEditModalOpen(false)} title="Edit Vendor">
           <VendorForm
@@ -359,8 +378,8 @@ const VendorDetail = () => {
           />
         </Modal>
       </div>
-      </div>
-    );
+    </div>
+  );
 };
 
 export default VendorDetail;

@@ -41,7 +41,7 @@ const ProjectForm = ({ onClose, refreshProjects }) => {
 
     try {
       setLoading(true);
-      await axiosInstance.post('projects', formData,);
+      await axiosInstance.post('project', formData,);
       refreshProjects();
       onClose();
     } catch (error) {

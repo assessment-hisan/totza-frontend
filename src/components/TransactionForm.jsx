@@ -5,6 +5,8 @@ const TransactionForm = ({
   entityId, 
   entityType, // 'worker', 'vendor', or 'project'
   accounts,
+  vendors,
+  workers,
   onSubmit,
   onCancel
 }) => {
@@ -17,36 +19,29 @@ const TransactionForm = ({
     date: new Date().toISOString().split('T')[0],
     purpose: '',
     items: '',
+    associationType: '', // '' means None, 'Vendor', or 'Worker'
+    vendor: '',
+    worker: '',
     files: []
   });
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState(null);
-//   const [filePreviews, setFilePreviews] = useState([]);
 
   const handleChange = (e) => {
-    const { name, value } = e.target;
-    setFormData(prev => ({ ...prev, [name]: value }));
+    const { name, value, files } = e.target;
+    if (name === 'files') {
+      setFormData(prev => ({ ...prev, files: Array.from(files) }));
+    } else if (name === 'associationType') {
+      setFormData(prev => ({
+        ...prev,
+        associationType: value,
+        vendor: value === 'Vendor' ? prev.vendor : '',
+        worker: value === 'Worker' ? prev.worker : ''
+      }));
+    } else {
+      setFormData(prev => ({ ...prev, [name]: value }));
+    }
   };
-
-//   const handleFileChange = (e) => {
-//     const files = Array.from(e.target.files);
-//     setFilePreviews(files.map(file => ({
-//       name: file.name,
-//       url: URL.createObjectURL(file)
-//     })));
-//     setFormData(prev => ({ ...prev, files }));
-//   };
-
-//   const removeFile = (index) => {
-//     const newFiles = [...formData.files];
-//     newFiles.splice(index, 1);
-//     setFormData(prev => ({ ...prev, files: newFiles }));
-    
-//     const newPreviews = [...filePreviews];
-//     URL.revokeObjectURL(newPreviews[index].url);
-//     newPreviews.splice(index, 1);
-//     setFilePreviews(newPreviews);
-//   };
 
   const handleSubmit = async (e) => {
     e.preventDefault();
@@ -61,7 +56,7 @@ const TransactionForm = ({
       formPayload.append('date', formData.date);
       formPayload.append('purpose', formData.purpose);
       formPayload.append('items', formData.items);
-      console.log("entitty id" ,entityType , entityId)
+      
       // Add entity reference
       formPayload.append(entityType, entityId);
       
@@ -72,6 +67,13 @@ const TransactionForm = ({
         formPayload.append('dueDate', formData.dueDate);
       }
       
+      // Add association (vendor or worker)
+      if (formData.associationType === 'Vendor' && formData.vendor) {
+        formPayload.append('vendor', formData.vendor);
+      } else if (formData.associationType === 'Worker' && formData.worker) {
+        formPayload.append('workers', formData.worker); // Matches CompanyTransaction schema
+      }
+      
       // Add files
       formData.files.forEach(file => {
         formPayload.append('files', file);
@@ -80,7 +82,7 @@ const TransactionForm = ({
       await onSubmit(formPayload);
       onCancel();
     } catch (err) {
-      console.log(err)
+      console.log(err);
       setError(err.response?.data?.error || err.message);
     } finally {
       setLoading(false);
@@ -229,6 +231,69 @@ const TransactionForm = ({
           )}
         </div>
 
+        {/* Association Type */}
+        <div>
+          <label className="block text-sm font-medium text-gray-700 mb-1">
+            Association
+          </label>
+          <select
+            name="associationType"
+            value={formData.associationType}
+            onChange={handleChange}
+            className="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-blue-500 focus:border-blue-500"
+          >
+            <option value="">None</option>
+            <option value="Vendor">Vendor</option>
+            <option value="Worker">Worker</option>
+          </select>
+        </div>
+
+        {/* Vendor Select (conditionally shown) */}
+        {formData.associationType === 'Vendor' && (
+          <div>
+            <label className="block text-sm font-medium text-gray-700 mb-1">
+              Vendor
+            </label>
+            <select
+              name="vendor"
+              value={formData.vendor}
+              onChange={handleChange}
+              className="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-blue-500 focus:border-blue-500"
+              required={formData.associationType === 'Vendor'}
+            >
+              <option value="">Select Vendor</option>
+              {vendors?.map(vendor => (
+                <option key={vendor._id} value={vendor._id}>
+                  {vendor.companyName}
+                </option>
+              ))}
+            </select>
+          </div>
+        )}
+
+        {/* Worker Select (conditionally shown) */}
+        {formData.associationType === 'Worker' && (
+          <div>
+            <label className="block text-sm font-medium text-gray-700 mb-1">
+              Worker
+            </label>
+            <select
+              name="worker"
+              value={formData.worker}
+              onChange={handleChange}
+              className="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-blue-500 focus:border-blue-500"
+              required={formData.associationType === 'Worker'}
+            >
+              <option value="">Select Worker</option>
+              {workers?.map(worker => (
+                <option key={worker._id} value={worker._id}>
+                  {worker.name}
+                </option>
+              ))}
+            </select>
+          </div>
+        )}
+
         {/* Purpose */}
         <div>
           <label className="block text-sm font-medium text-gray-700 mb-1">
@@ -257,8 +322,6 @@ const TransactionForm = ({
             className="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-blue-500 focus:border-blue-500"
           />
         </div>
-
-       
 
         {/* Buttons */}
         <div className="flex justify-end gap-3 pt-4">

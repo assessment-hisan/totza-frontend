@@ -2,7 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import axiosInstance from '../../utils/axiosInstance';
 import Modal from '../ui/modals/Modal';
-import { ArrowLeft, Edit, PlusCircle } from 'lucide-react';
+import { ArrowLeft, Edit, PlusCircle, Trash2 } from 'lucide-react';
 import WorkerForm from './WorkerForm';
 import TransactionForm from "../TransactionForm"
 
@@ -34,9 +34,9 @@ const WorkerDetail = () => {
         axiosInstance.get(`worker/${workerId}`),
         axiosInstance.get(`worker/transactions?worker=${workerId}`)
       ]);
-      
+
       setWorker(workerRes.data);
-      
+
       console.log("transaction res", transactionsRes.data.transactions)
       setTransactions(transactionsRes.data.transactions);
     } catch (err) {
@@ -45,7 +45,7 @@ const WorkerDetail = () => {
       setLoading(false);
     }
   };
-  
+
   const getAccounts = async () => {
     try {
       const response = await axiosInstance.get('account');
@@ -57,7 +57,15 @@ const WorkerDetail = () => {
       setError("Failed to load accounts. Please refresh the page.");
     }
   };
-
+  const handleDeleteTransaction = async (txnId) => {
+    try {
+      await axiosInstance.delete(`/company/${txnId}`);
+      setTransactions(prev => prev.filter(t => t._id !== txnId));
+    } catch (err) {
+      console.error('Error deleting transaction:', err);
+      setError(err.response?.data?.message || 'Failed to delete transaction');
+    }
+  };
   useEffect(() => {
     fetchWorkerData();
     getAccounts()
@@ -132,28 +140,27 @@ const WorkerDetail = () => {
         >
           <ArrowLeft className="w-4 h-4 mr-1" /> Back
         </button>
-        
+
         <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
           <div>
             <div className="flex flex-wrap items-center gap-2">
               <h1 className="text-2xl font-bold text-gray-800">{worker.name}</h1>
-              <span className={`px-3 py-1 text-xs rounded-full whitespace-nowrap ${
-                worker.status === 'Active' ? 'bg-green-100 text-green-800' :
+              <span className={`px-3 py-1 text-xs rounded-full whitespace-nowrap ${worker.status === 'Active' ? 'bg-green-100 text-green-800' :
                 worker.status === 'On Leave' ? 'bg-yellow-100 text-yellow-800' :
-                'bg-red-100 text-red-800'
-              }`}>
+                  'bg-red-100 text-red-800'
+                }`}>
                 {worker.status}
               </span>
             </div>
             <p className="text-gray-600 text-sm mt-2">{worker.role}</p>
           </div>
           <div className="mt-4 sm:mt-0">
-           
+
             <button
               onClick={() => setIsModalOpen(true)}
               className="flex items-center justify-center gap-2 bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded-lg"
             >
-             <PlusCircle className="w-4 h-4" /> Add Transaction
+              <PlusCircle className="w-4 h-4" /> Add Transaction
             </button>
             <button
               onClick={() => setIsEditModalOpen(true)}
@@ -164,7 +171,7 @@ const WorkerDetail = () => {
           </div>
         </div>
       </div>
-  
+
       {/* Worker Summary Cards */}
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3 mb-6">
         <div className="bg-white p-4 rounded-lg shadow-sm border border-gray-200">
@@ -190,13 +197,13 @@ const WorkerDetail = () => {
           </p>
         </div>
       </div>
-  
+
       {/* Address Section */}
       <div className="bg-white p-4 rounded-lg shadow-sm border border-gray-200 mb-6">
         <h2 className="text-lg font-semibold text-gray-800 mb-3">Address</h2>
         <p className="text-gray-600">{worker.address}</p>
       </div>
-  
+
       {/* Financial Overview */}
       <div className="bg-white p-4 rounded-lg shadow-sm border border-gray-200 mb-6">
         <h2 className="text-lg font-semibold text-gray-800 mb-3">Financial Overview</h2>
@@ -213,19 +220,17 @@ const WorkerDetail = () => {
               ₹{totals.debits.toLocaleString('en-IN')}
             </p>
           </div>
-          <div className={`p-3 rounded-lg ${
-            balance >= 0 ? 'bg-blue-50' : 'bg-yellow-50'
-          }`}>
-            <p className="text-xs font-medium">Current Balance</p>
-            <p className={`text-xl font-bold ${
-              balance >= 0 ? 'text-blue-600' : 'text-yellow-600'
+          <div className={`p-3 rounded-lg ${balance >= 0 ? 'bg-blue-50' : 'bg-yellow-50'
             }`}>
+            <p className="text-xs font-medium">Current Balance</p>
+            <p className={`text-xl font-bold ${balance >= 0 ? 'text-blue-600' : 'text-yellow-600'
+              }`}>
               ₹{balance.toLocaleString('en-IN')}
             </p>
           </div>
         </div>
       </div>
-  
+
       {/* Transactions Section */}
       <div className="mb-6">
         <div className="flex justify-between items-center mb-3">
@@ -234,7 +239,7 @@ const WorkerDetail = () => {
             {transactions.length} total
           </p>
         </div>
-        
+
         {transactions.length > 0 ? (
           <div className="overflow-x-auto">
             <table className="min-w-full bg-white rounded-lg overflow-hidden border">
@@ -255,6 +260,9 @@ const WorkerDetail = () => {
                   <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
                     Status
                   </th>
+                  <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                    Actions
+                  </th>
                 </tr>
               </thead>
               <tbody className="divide-y divide-gray-200">
@@ -267,37 +275,44 @@ const WorkerDetail = () => {
                       {transaction.description || 'No description'}
                     </td>
                     <td className="px-4 py-3 whitespace-nowrap">
-                      <span className={`px-2 py-1 inline-flex text-xs leading-5 font-semibold rounded-full ${
-                        transaction.type === 'Credit' 
-                          ? 'bg-green-100 text-green-800' 
-                          : transaction.type === 'Debit'
+                      <span className={`px-2 py-1 inline-flex text-xs leading-5 font-semibold rounded-full ${transaction.type === 'Credit'
+                        ? 'bg-green-100 text-green-800'
+                        : transaction.type === 'Debit'
                           ? 'bg-red-100 text-red-800'
                           : 'bg-yellow-100 text-yellow-800'
-                      }`}>
+                        }`}>
                         {transaction.type}
                       </span>
                     </td>
                     <td className="px-4 py-3 whitespace-nowrap text-sm">
-                      <span className={`font-medium ${
-                        transaction.type === 'Credit' 
-                          ? 'text-green-600' 
-                          : 'text-red-600'
-                      }`}>
+                      <span className={`font-medium ${transaction.type === 'Credit'
+                        ? 'text-green-600'
+                        : 'text-red-600'
+                        }`}>
                         ₹{Number(transaction.amount).toLocaleString('en-IN')}
                       </span>
                     </td>
                     <td className="px-4 py-3 whitespace-nowrap">
-                      <span className={`px-2 py-1 inline-flex text-xs leading-5 font-semibold rounded-full ${
-                        transaction.status === 'Completed' 
-                          ? 'bg-green-100 text-green-800' 
-                          : transaction.status === 'Pending'
+                      <span className={`px-2 py-1 inline-flex text-xs leading-5 font-semibold rounded-full ${transaction.status === 'Completed'
+                        ? 'bg-green-100 text-green-800'
+                        : transaction.status === 'Pending'
                           ? 'bg-yellow-100 text-yellow-800'
                           : 'bg-gray-100 text-gray-800'
-                      }`}>
+                        }`}>
                         {transaction.status || 'N/A'}
                       </span>
                     </td>
+                    <td className="px-4 py-3 whitespace-nowrap">
+                      <button
+                        onClick={() => handleDeleteTransaction(transaction._id)}
+                        className="text-red-600 hover:text-red-800 text-sm"
+                        title="Delete Transaction"
+                      >
+                        <Trash2/>
+                      </button>
+                    </td>
                   </tr>
+
                 ))}
               </tbody>
             </table>
@@ -308,10 +323,10 @@ const WorkerDetail = () => {
           </div>
         )}
       </div>
-  
+
       {/* Edit Worker Modal */}
       <Modal isOpen={isEditModalOpen} onClose={() => setIsEditModalOpen(false)} title="Edit Worker">
-        <WorkerForm 
+        <WorkerForm
           initialData={worker}
           onSubmit={handleUpdateWorker}
           onCancel={() => setIsEditModalOpen(false)}
@@ -320,22 +335,22 @@ const WorkerDetail = () => {
       </Modal>
 
       <Modal isOpen={isModalOpen} onClose={() => setIsModalOpen(false)} title="Add Transaction">
-      <TransactionForm
-        entityId={workerId} // or vendorId/projectId
-        entityType="workers" // or "vendor"/"project"
-        accounts={accounts}
-        onSubmit={async (formData) => {
-          try {
-            const res = await axiosInstance.post('company', formData);
-            console.log(res)
-            fetchWorkerData(); // Refresh data
-          } catch (err) {
-            throw err;
-            
-          }
-        }}
-        onCancel={() => setIsModalOpen(false)}
-      />
+        <TransactionForm
+          entityId={workerId} // or vendorId/projectId
+          entityType="workers" // or "vendor"/"project"
+          accounts={accounts}
+          onSubmit={async (formData) => {
+            try {
+              const res = await axiosInstance.post('company', formData);
+              console.log(res)
+              fetchWorkerData(); // Refresh data
+            } catch (err) {
+              throw err;
+
+            }
+          }}
+          onCancel={() => setIsModalOpen(false)}
+        />
       </Modal>
     </div>
   );

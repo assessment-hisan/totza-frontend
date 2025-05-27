@@ -1,42 +1,68 @@
 import React, { useState } from 'react';
 import axiosInstance from '../../../utils/axiosInstance';
 
-const PayDueForm = ({ dueId, accounts, maxAmount, onCancel }) => {
+const PayDueForm = ({ dueId, accounts, maxAmount, onCancel, onSuccess }) => {
   const [formData, setFormData] = useState({
     amount: '',
-    discount: '',
+    discount: '0',
     account: '',
     paymentDate: new Date().toISOString().split('T')[0],
-    notes: ''
+    purpose: ''
   });
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState(null);
 
   const handleChange = (e) => {
     const { name, value } = e.target;
-    setFormData(prev => ({ ...prev, [name]: value }));
+    setFormData(prev => ({ 
+      ...prev, 
+      [name]: value 
+    }));
   };
 
   const handleSubmit = async (e) => {
     e.preventDefault();
     setLoading(true);
+    setError(null);
 
-    const total = parseFloat(formData.amount || 0) + parseFloat(formData.discount || 0);
-    if (total > maxAmount) {
-      setError(`Total (amount + discount) cannot exceed ₹${maxAmount.toFixed(2)}`);
+    // Convert to numbers and handle empty values
+    const amount = parseFloat(formData.amount) || 0;
+    const discount = parseFloat(formData.discount) || 0;
+    const totalPayment = amount + discount;
+
+    // Validations
+    if (amount <= 0) {
+      setError('Payment amount must be greater than 0');
+      setLoading(false);
+      return;
+    }
+
+    if (discount < 0) {
+      setError('Discount cannot be negative');
+      setLoading(false);
+      return;
+    }
+
+    if (totalPayment > maxAmount) {
+      setError(`Total payment (amount + discount) cannot exceed ₹${maxAmount.toFixed(2)}`);
       setLoading(false);
       return;
     }
 
     try {
-      await axiosInstance.post(`/due/${dueId}/payments`, {
-        ...formData,
-        dueId,
+      const response = await axiosInstance.post(`/due/${dueId}/payments`, {
+        amount: amount,
+        discount: discount,
+        account: formData.account,
+        paymentDate: formData.paymentDate,
+        purpose: formData.purpose,
         type: 'Debit'
       });
+
+      if (onSuccess) onSuccess(response.data);
       onCancel();
     } catch (err) {
-      setError(err.response?.data?.error || err.message);
+      setError(err.response?.data?.error || err.message || 'Failed to record payment');
     } finally {
       setLoading(false);
     }
@@ -54,7 +80,6 @@ const PayDueForm = ({ dueId, accounts, maxAmount, onCancel }) => {
 
       <form onSubmit={handleSubmit}>
         <div className="space-y-4">
-
           {/* Amount */}
           <div>
             <label className="block text-sm font-medium text-gray-700 mb-1">
@@ -66,8 +91,8 @@ const PayDueForm = ({ dueId, accounts, maxAmount, onCancel }) => {
               value={formData.amount}
               onChange={handleChange}
               max={maxAmount}
-              min="0"
-              step="0"
+              min="0.01"
+              step="0.01"
               className="w-full px-3 py-2 border border-gray-300 rounded-md"
               required
             />
@@ -78,17 +103,29 @@ const PayDueForm = ({ dueId, accounts, maxAmount, onCancel }) => {
             <label className="block text-sm font-medium text-gray-700 mb-1">
               Discount
             </label>
-            <input
+            {/* <input
               type="number"
               name="discount"
               value={formData.discount}
               onChange={handleChange}
-              max={maxAmount}
+              max={Math.max(0, maxAmount - (parseFloat(formData.amount) || 0)}
               min="0"
               step="0.01"
               className="w-full px-3 py-2 border border-gray-300 rounded-md"
               placeholder="Enter any discount if applicable"
-            />
+            /> */}
+            <input 
+             type="number"
+             name="discount"
+             value={formData.discount}
+             onChange={handleChange}
+             max={Math.max(0, maxAmount - (parseFloat(formData.amount) || 0))}
+             min="0"
+             step="0.01"
+             className="w-full px-3 py-2 border border-gray-300 rounded-md"
+             placeholder="Enter any discount if applicable"
+              />
+            
           </div>
 
           {/* Account */}
@@ -101,6 +138,7 @@ const PayDueForm = ({ dueId, accounts, maxAmount, onCancel }) => {
               value={formData.account}
               onChange={handleChange}
               className="w-full px-3 py-2 border border-gray-300 rounded-md"
+              
             >
               <option value="">Select Account</option>
               {accounts?.map(account => (
@@ -122,7 +160,7 @@ const PayDueForm = ({ dueId, accounts, maxAmount, onCancel }) => {
               value={formData.paymentDate}
               onChange={handleChange}
               className="w-full px-3 py-2 border border-gray-300 rounded-md"
-              required
+              
             />
           </div>
 
@@ -133,7 +171,7 @@ const PayDueForm = ({ dueId, accounts, maxAmount, onCancel }) => {
             </label>
             <textarea
               name="notes"
-              value={formData.notes}
+              value={formData.purpose}
               onChange={handleChange}
               className="w-full px-3 py-2 border border-gray-300 rounded-md"
               rows="3"
@@ -161,6 +199,6 @@ const PayDueForm = ({ dueId, accounts, maxAmount, onCancel }) => {
       </form>
     </div>
   );
-};
+}
 
-export default PayDueForm;
+export default PayDueForm

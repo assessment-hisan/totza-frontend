@@ -6,6 +6,7 @@ import { getStatusColor } from '../../utils/helper';
 import { PlusCircle, Trash2, Loader } from 'lucide-react';
 import ConfirmModal from '../ui/modals/ConfirmModal';
 import { useNavigate } from 'react-router-dom';
+import { useParams } from 'react-router-dom';
 
 const ProjectsList = () => {
   const [projects, setProjects] = useState([]);
@@ -14,6 +15,8 @@ const ProjectsList = () => {
   const [projectToDelete, setProjectToDelete] = useState(null);
   const [loading, setLoading] = useState(true);
 
+
+  const { projectId } = useParams();
   const navigate = useNavigate();
 
   // Remove this function - it uses 'project' which isn't defined here
@@ -35,9 +38,9 @@ const ProjectsList = () => {
   const handleDelete = async (e, projectId) => {
     // Stop click event from bubbling up to parent div
     e.stopPropagation();
-    
+
     try {
-      await axiosInstance.delete(`/api/projects/${projectId}`);
+      await axiosInstance.delete(`project/${projectId}`);
       fetchProjects(); // Refresh list
       setIsDeleteModalOpen(false);
     } catch (error) {
@@ -52,7 +55,7 @@ const ProjectsList = () => {
       day: 'numeric',
     });
   };
-  
+
   useEffect(() => {
     fetchProjects();
   }, []);
@@ -70,7 +73,7 @@ const ProjectsList = () => {
           Create Project
         </button>
       </div>
-  
+
       {/* Loading State */}
       {loading ? (
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
@@ -107,7 +110,7 @@ const ProjectsList = () => {
                   <td className="px-6 py-4 whitespace-nowrap text-gray-600">{formatDate(project.startDate)}</td>
                   <td className="px-6 py-4 whitespace-nowrap text-gray-600">{formatDate(project.endDate)}</td>
                   <td className="px-6 py-4 whitespace-nowrap text-blue-600 font-medium">
-                    ${project.estimatedBudget.toLocaleString()}
+                    {project.estimatedBudget.toLocaleString()}
                   </td>
                   <td className="px-6 py-4 whitespace-nowrap text-center">
                     <button
@@ -127,22 +130,23 @@ const ProjectsList = () => {
           </table>
         </div>
       )}
-  
+
       {/* Modals */}
       <Modal isOpen={isModalOpen} onClose={() => setIsModalOpen(false)} title="Create Project">
         <ProjectForm onClose={() => setIsModalOpen(false)} refreshProjects={fetchProjects} />
       </Modal>
-  
+
       <ConfirmModal
         isOpen={isDeleteModalOpen}
         onClose={() => setIsDeleteModalOpen(false)}
         onConfirm={handleDelete}
+        id={projectToDelete}
         title="Delete Project?"
         message="This action cannot be undone. Are you sure?"
       />
     </div>
   );
-  
+
 };
 
 export default ProjectsList;
