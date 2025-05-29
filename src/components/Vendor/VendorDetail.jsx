@@ -4,7 +4,7 @@ import axiosInstance from '../../utils/axiosInstance';
 import { format } from 'date-fns';
 import Modal from '../ui/modals/Modal';
 import { ArrowLeft, Edit, PlusCircle, Download, Trash2 } from 'lucide-react';
-import VendorForm from './Vendorform';
+import VendorForm from './VendorForm';
 import TransactionForm from '../TransactionForm';
 import { jsPDF } from 'jspdf';
 
