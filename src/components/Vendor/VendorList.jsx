@@ -4,7 +4,7 @@ import Modal from "../ui/modals/Modal";
 import { PlusCircle, Trash2 } from 'lucide-react';
 import ConfirmModal from '../ui/modals/ConfirmModal';
 import { useNavigate } from 'react-router-dom';
-import VendorForm from './Vendorform';
+import VendorForm from './VendorForm';
 
 const VendorList = () => {
   const [vendors, setVendors] = useState([]);
