@@ -1,15 +1,20 @@
 import React, { useState } from 'react';
 import Modal from '../components/ui/modals/Modal';
-import ItemForm from '../components/ui/tables/ItemForm'
-import ItemTable from '../components/ui/tables/ItemTable'
+import ConfirmModal from '../components/ui/modals/ConfirmModal';
+import ItemForm from '../components/ui/tables/ItemForm';
+import ItemTable from '../components/ui/tables/ItemTable';
 import axiosInstance from '../utils/axiosInstance';
 
 const Items = () => {
   const [isModalOpen, setIsModalOpen] = useState(false);
+  const [isConfirmModalOpen, setIsConfirmModalOpen] = useState(false);
+  const [itemToDelete, setItemToDelete] = useState(null);
+  const [reload, setReload] = useState(false);
 
   const handleCreateItem = async (formData) => {
     try {
-      await axiosInstance.post('/items', formData);
+      await axiosInstance.post('/item', formData);
+      setReload((prev) => !prev);
       return true;
     } catch (error) {
       console.error('Error creating item:', error);
@@ -17,34 +22,57 @@ const Items = () => {
     }
   };
 
+  const handleDeleteClick = (itemId) => {
+    setItemToDelete(itemId);
+    setIsConfirmModalOpen(true);
+  };
+
+  const handleConfirmDelete = async () => {
+    try {
+      await axiosInstance.delete(`/item/${itemToDelete}`);
+      setReload((prev) => !prev);
+      setIsConfirmModalOpen(false);
+    } catch (error) {
+      console.error('Error deleting item:', error);
+    }
+  };
+
   return (
     <div className="p-6 space-y-6">
       <div className="flex justify-between items-center">
-        <h2 className="text-2xl font-bold text-gray-800">Items</h2>
-        <button
-          onClick={() => setIsModalOpen(true)}
-          className="inline-flex items-center px-4 py-2 border border-transparent text-sm font-medium rounded-md shadow-sm text-white bg-indigo-600 hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500"
-        >
-          + Add Item
-        </button>
+      <div>
+      <h2 className="text-3xl font-bold text-gray-900">Items</h2>
+      <h3 className='text-gray-600 font-medium '>here you manage all items</h3>
+      </div>
       </div>
 
-      <ItemTable />
+      <ItemTable 
+        reload={reload} 
+        onDelete={handleDeleteClick}
+        onAdd={() => setIsModalOpen(true)}
+      />
 
-      {isModalOpen && (
-        <Modal  isOpen={isModalOpen} onClose={() => setIsModalOpen(false)} title="Add New Item">
-          <ItemForm 
-            onSuccess={async (formData) => {
-              const success = await handleCreateItem(formData);
-              if (success) {
-                setIsModalOpen(false);
-              }
-              return success;
-            }}
-            onCancel={() => setIsModalOpen(false)}
-          />
-        </Modal>
-      )}
+      <Modal isOpen={isModalOpen} onClose={() => setIsModalOpen(false)} title="Add New Item">
+        <ItemForm
+          onSuccess={async (formData) => {
+            const success = await handleCreateItem(formData);
+            if (success) {
+              setIsModalOpen(false);
+            }
+            return success;
+          }}
+          onCancel={() => setIsModalOpen(false)}
+        />
+      </Modal>
+
+      <ConfirmModal
+        isOpen={isConfirmModalOpen}
+        onClose={() => setIsConfirmModalOpen(false)}
+        onConfirm={handleConfirmDelete}
+        title="Confirm Deletion"
+        message="Are you sure you want to delete this item? This action cannot be undone."
+        id={itemToDelete}
+      />
     </div>
   );
 };

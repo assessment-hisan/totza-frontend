@@ -2,25 +2,22 @@ import React, { useState, useEffect } from 'react';
 
 const ItemForm = ({ initialData = {}, onSuccess, onCancel }) => {
   const [formData, setFormData] = useState({
-    name: '',
-    ...initialData
+    name: initialData.name || '',
   });
 
   const [isSubmitting, setIsSubmitting] = useState(false);
 
   useEffect(() => {
-    if (initialData) {
-      setFormData({
-        name: initialData.name || '',
-      });
+    if (initialData && initialData.name) {
+      setFormData({ name: initialData.name });
     }
-  }, [initialData]);
+  }, [initialData.name]); // safer dependency
 
   const handleChange = (e) => {
     const { name, value } = e.target;
-    setFormData(prev => ({
+    setFormData((prev) => ({
       ...prev,
-      [name]: value
+      [name]: value,
     }));
   };
 
@@ -57,14 +54,14 @@ const ItemForm = ({ initialData = {}, onSuccess, onCancel }) => {
         <button
           type="button"
           onClick={onCancel}
-          className="inline-flex justify-center py-2 px-4 border border-gray-300 shadow-sm text-sm font-medium rounded-md text-gray-700 bg-white hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500"
+          className="inline-flex justify-center py-2 px-4 border border-gray-300 shadow-sm text-sm font-medium rounded-md text-gray-700 bg-white hover:bg-gray-50"
         >
           Cancel
         </button>
         <button
           type="submit"
           disabled={isSubmitting}
-          className="inline-flex justify-center py-2 px-4 border border-transparent shadow-sm text-sm font-medium rounded-md text-white bg-indigo-600 hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500"
+          className="inline-flex justify-center py-2 px-4 border border-transparent shadow-sm text-sm font-medium rounded-md text-white bg-indigo-600 hover:bg-indigo-700"
         >
           {isSubmitting ? 'Saving...' : 'Save'}
         </button>

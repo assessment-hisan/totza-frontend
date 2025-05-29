@@ -36,12 +36,7 @@ const DueDetailPage = () => {
     fetchData();
   }, [dueId]);
 
-  const handleAddPayment = () => {
-    navigate(`/pay-due/${id}`);
-  };
-
-
-
+ 
   if (loading) return <div className="p-8 text-center">Loading...</div>;
   if (!due) return <div className="p-8 text-center">Due not found</div>;
 
@@ -78,7 +73,7 @@ const DueDetailPage = () => {
           {/* Vendor */}
           <div className="bg-gray-50 p-4 rounded-lg">
             <h3 className="text-sm font-medium text-gray-500 mb-1">Vendor</h3>
-            <p className="text-gray-800 font-medium">{due.vendor}</p>
+            <p className="text-gray-800 font-medium">{due?.vendor || "N/A"}</p>
           </div>
 
           {/* Purpose */}
@@ -178,8 +173,8 @@ const DueDetailPage = () => {
                       </span>
                     </td>
                     <td className="px-6 py-4 whitespace-nowrap">
-                      <span className="px-2 py-1 text-sm font-semibold rounded-full bg-green-100 text-green-800">
-                        discount
+                      <span className="px-2 py-1 text-sm font-semibold rounded-3xl bg-green-100 text-green-800">
+                      ₹{payment.discount?.toFixed(2)}
                       </span>
                     </td>
                     <td className="px-6 py-4 whitespace-nowrap">
