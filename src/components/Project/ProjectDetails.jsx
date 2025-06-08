@@ -1,12 +1,16 @@
+// Updated ProjectDetails.jsx with edit functionality
 import React, { useState, useEffect } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import axiosInstance from '../../utils/axiosInstance';
 import TransactionTable from '../ui/tables/TransactionTable';
 import TransactionForm from '../TransactionForm';
 import Modal from '../ui/modals/Modal';
-import { ArrowLeft, PlusCircle, Trash2, Download } from 'lucide-react';
-import { jsPDF } from 'jspdf';
+import { ChevronDown, ChevronUp, Edit2 } from 'lucide-react';
+import { ArrowLeft, PlusCircle, Download } from 'lucide-react';
 import { format } from 'date-fns';
+import { PDFDownloadLink } from '@react-pdf/renderer';
+import ProjectPDF from '../pdf/projectPdf';
+import ProjectEditForm from './ProjectEditForm'; // We'll create this component
 
 const ProjectDetails = () => {
   const { projectId } = useParams();
@@ -16,28 +20,21 @@ const ProjectDetails = () => {
   const [accounts, setAccounts] = useState([]);
   const [vendors, setVendors] = useState([]);
   const [isFormOpen, setIsFormOpen] = useState(false);
+  const [isEditFormOpen, setIsEditFormOpen] = useState(false);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
-
-  const formatDate = (dateString) => {
-    if (!dateString) return 'N/A';
-    const date = new Date(dateString);
-    const day = String(date.getDate()).padStart(2, '0');
-    const month = String(date.getMonth() + 1).padStart(2, '0');
-    const year = date.getFullYear();
-    return `${day}/${month}/${year}`;
-  };
+  const [showDetails, setShowDetails] = useState(false);
 
   useEffect(() => {
     const fetchData = async () => {
       try {
         setLoading(true);
         const [transactionsRes, accountsRes, vendorsRes] = await Promise.all([
-          axiosInstance.get(`/company?project=${projectId}`),
+          axiosInstance.get(`/project/transactions?project=${projectId}`),
           axiosInstance.get('/account'),
           axiosInstance.get('/vendor')
         ]);
-        console.log(transactions.data)
+        console.log(transactionsRes.data)
         setTransactions(transactionsRes.data || []);
         setAccounts(accountsRes.data || []);
         setVendors(vendorsRes.data || []);
@@ -46,27 +43,20 @@ const ProjectDetails = () => {
         setProject(projectRes.data[0]);
       } catch (err) {
         setError(err.response?.data?.message || 'Failed to load project');
-        console.error('Error fetching data:', err);
       } finally {
         setLoading(false);
       }
     };
-
     fetchData();
   }, [projectId]);
 
   const handleAddTransaction = async (formData) => {
     try {
-      const payload = {
-        ...Object.fromEntries(formData),
-        project: projectId,
-      };
-  
+      const payload = { ...Object.fromEntries(formData), project: projectId };
       const res = await axiosInstance.post('/company', payload);
       setTransactions(prev => [res.data, ...prev]);
       setIsFormOpen(false);
     } catch (err) {
-      console.error('Error adding transaction:', err);
       setError(err.response?.data?.message || 'Failed to add transaction');
     }
   };
@@ -76,125 +66,33 @@ const ProjectDetails = () => {
       await axiosInstance.delete(`/company/${txnId}`);
       setTransactions(prev => prev.filter(t => t._id !== txnId));
     } catch (err) {
-      console.error('Error deleting transaction:', err);
       setError(err.response?.data?.message || 'Failed to delete transaction');
     }
   };
 
-  const projectDownloadPDF = () => {
-    const pdf = new jsPDF('l', 'pt', 'a4');
-    const projectTitle = project.title;
-    const date = format(new Date(), 'dd MMM yyyy');
-    
-    // Add title
-    pdf.setFontSize(18);
-    pdf.text(`Project: ${projectTitle} - Transaction Report`, 40, 40);
-    pdf.setFontSize(12);
-    pdf.text(`Generated on: ${date}`, 40, 60);
-    
-    // Add project details
-    pdf.setFontSize(12);
-    pdf.text(`Description: ${project.description || '-'}`, 40, 80);
-    pdf.text(`Start Date: ${formatDate(project.startDate)}`, 40, 95);
-    pdf.text(`End Date: ${formatDate(project.endDate)}`, 40, 110);
-    pdf.text(`Status: ${project.status}`, 40, 125);
-    pdf.text(`Estimated Budget: ${Number(project.estimatedBudget).toLocaleString('en-IN')}`, 40, 140);
-    
-    // Add financial summary
-    pdf.setFontSize(14);
-    pdf.text('Financial Summary', 40, 170);
-    pdf.setFontSize(12);
-    pdf.text(`Total Credits: ${totals.credits.toLocaleString('en-IN')}`, 40, 190);
-    pdf.text(`Total Debits: ${totals.debits.toLocaleString('en-IN')}`, 40, 205);
-    pdf.text(`Current Balance: ${balance.toLocaleString('en-IN')}`, 40, 220);
-    
-    // Add transactions table header
-    pdf.setFontSize(14);
-    pdf.text('Transactions', 40, 250);
-    
-    // Create table
-    const headers = ['Date', 'Type', 'Amount', 'Discount', 'Due Date', 'Added By', 'Purpose'];
-    const rows = projectTransactions.map(txn => [
-      format(new Date(txn.date), 'dd MMM yyyy'),
-      txn.type,
-      `₹${Number(txn.amount).toLocaleString('en-IN')}`,
-      txn.discount ? `-${txn.discount}` : '-',
-      txn.type === 'Due' && txn.dueDate ? format(new Date(txn.dueDate), 'dd MMM yyyy') : '-',
-      txn.addedBy?.name || 'System',
-      txn.purpose || '-'
-    ]);
-    
-    // Simple table implementation
-    pdf.setFontSize(10);
-    let y = 270;
-    
-    // Table header
-    pdf.setFillColor(240, 240, 240);
-    pdf.rect(40, y, 730, 20, 'F');
-    pdf.setTextColor(0, 0, 0);
-    pdf.setFont(undefined, 'bold');
-    headers.forEach((header, i) => {
-      pdf.text(header, 50 + (i * 90), y + 15);
-    });
-    y += 20;
-    
-    // Table rows
-    pdf.setFont(undefined, 'normal');
-    rows.forEach((row) => {
-      if (y > pdf.internal.pageSize.height - 40) {
-        pdf.addPage();
-        y = 40;
-      }
-      
-      row.forEach((cell, cellIndex) => {
-        pdf.text(cell, 50 + (cellIndex * 90), y + 15);
-      });
-      y += 20;
-    });
-    
-    // Save the PDF
-    pdf.save(`${projectTitle.replace(/ /g, '_')}_transactions_${date.replace(/ /g, '_')}.pdf`);
+  const handleEditProject = async (formData) => {
+    try {
+      const res = await axiosInstance.put(`/project/${projectId}`, formData);
+      setProject(res.data);
+      setIsEditFormOpen(false);
+    } catch (err) {
+      setError(err.response?.data?.message || 'Failed to update project');
+    }
   };
 
-  if (loading) {
-    return (
-      <div className="flex justify-center items-center h-screen">
-        <div className="animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-blue-500"></div>
-      </div>
-    );
-  }
+  const formatDate = (dateString) => {
+    if (!dateString) return 'N/A';
+    const date = new Date(dateString);
+    return format(date, 'dd/MM/yyyy');
+  };
 
-  if (error) {
-    return (
-      <div className="p-6">
-        <div className="bg-red-50 border-l-4 border-red-500 p-4">
-          <div className="flex">
-            <div className="flex-shrink-0">
-              <svg className="h-5 w-5 text-red-500" viewBox="0 0 20 20" fill="currentColor">
-                <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zM8.707 7.293a1 1 0 00-1.414 1.414L8.586 10l-1.293 1.293a1 1 0 101.414 1.414L10 11.414l1.293 1.293a1 1 0 001.414-1.414L11.414 10l1.293-1.293a1 1 0 00-1.414-1.414L10 8.586 8.707 7.293z" clipRule="evenodd" />
-              </svg>
-            </div>
-            <div className="ml-3">
-              <p className="text-sm text-red-700">{error}</p>
-            </div>
-          </div>
-        </div>
-        <button
-          onClick={() => navigate(-1)}
-          className="mt-4 px-4 py-2 bg-gray-200 rounded-md hover:bg-gray-300"
-        >
-          Go Back
-        </button>
-      </div>
-    );
-  }
+  if (loading) return <div className="text-center py-10">Loading...</div>;
+  if (error) return <div className="text-red-500 text-center py-10">{error}</div>;
+  if (!project) return <div className="text-center py-10">Project not found</div>;
 
-  if (!project) {
-    return <div className="p-6">Project not found</div>;
-  }
-
-  // Calculate project financials
-  const projectTransactions = transactions.filter(t => t.project?._id === projectId || t.project === projectId);
+  const projectTransactions = transactions.transactions
+  // const projectTransactions = transactions.filter(t => t.project?._id === projectId || t.project === projectId);
+  // console.log(projectTransactions)
   const totals = projectTransactions.reduce(
     (acc, txn) => {
       if (txn.type === 'Credit') acc.credits += Number(txn.amount);
@@ -208,152 +106,111 @@ const ProjectDetails = () => {
   const budgetUsage = project.estimatedBudget > 0 ? (totals.debits / project.estimatedBudget) * 100 : 0;
 
   return (
-    <div className="p-4 max-w-7xl mx-auto">
+    <div className="p-4 sm:p-6 max-w-7xl mx-auto space-y-6">
       {/* Header */}
-      <div className="mb-6">
-        <button
-          onClick={() => navigate(-1)}
-          className="flex items-center text-gray-600 hover:text-gray-800 mb-4"
-        >
+      <div className="space-y-4">
+        <button onClick={() => navigate(-1)} className="inline-flex items-center text-gray-600 hover:text-gray-800 text-sm">
           <ArrowLeft className="w-4 h-4 mr-1" /> Back
         </button>
-
         <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
           <div>
-            <div className="flex flex-wrap items-center gap-2">
-              <h1 className="text-2xl font-bold text-gray-800">{project.title}</h1>
-              <span className={`px-3 py-1 text-xs rounded-full whitespace-nowrap ${project.status === 'Completed' ? 'bg-green-100 text-green-800' :
-                project.status === 'In Progress' ? 'bg-blue-100 text-blue-800' :
-                  project.status === 'On Hold' ? 'bg-yellow-100 text-yellow-800' :
-                    'bg-gray-100 text-gray-800'
-                }`}>
-                {project.status}
-              </span>
-            </div>
-            <p className="text-gray-600 text-sm mt-2">{project.description}</p>
+            <h1 className="text-2xl font-bold text-gray-900">{project.title}</h1>
+            <p className="text-gray-600 text-sm mt-1">{project.description}</p>
           </div>
-          <div className="mt-4 sm:mt-0">
-            <button
-              onClick={() => setIsFormOpen(true)}
-              className="flex items-center justify-center w-full sm:w-auto gap-2 bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded-lg"
-            >
-              <PlusCircle className="w-4 h-4" /> Add Transaction
-            </button>
-          </div>
+          <button onClick={() => setIsFormOpen(true)} className="flex items-center gap-2 bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded-lg">
+            <PlusCircle className="w-4 h-4" /> Add Transaction
+          </button>
         </div>
       </div>
 
-      {/* Project Summary Cards */}
-      <div className="grid grid-cols-2 gap-3 mb-6">
-        <div className="bg-white p-4 rounded-lg shadow-sm border border-gray-200">
-          <h3 className="text-xs font-medium text-gray-500">Start Date</h3>
-          <p className="text-lg font-semibold mt-1">
-            {formatDate(project.startDate)}
-          </p>
-        </div>
-        <div className="bg-white p-4 rounded-lg shadow-sm border border-gray-200">
-          <h3 className="text-xs font-medium text-gray-500">End Date</h3>
-          <p className="text-lg font-semibold mt-1">
-            {formatDate(project.endDate)}
-          </p>
-        </div>
-        <div className="bg-white p-4 rounded-lg shadow-sm border border-gray-200">
-          <h3 className="text-xs font-medium text-gray-500">Budget</h3>
-          <p className="text-lg font-semibold mt-1">
-            ₹{Number(project.estimatedBudget).toLocaleString('en-IN')}
-          </p>
-        </div>
-        <div className="bg-white p-4 rounded-lg shadow-sm border border-gray-200">
-          <h3 className="text-xs font-medium text-gray-500">Created</h3>
-          <p className="text-lg font-semibold mt-1">
-            {formatDate(project.createdAt)}
-          </p>
-        </div>
+      {/* Accordion for Project Details */}
+      <div className="bg-white rounded-lg border shadow-sm">
+        <button onClick={() => setShowDetails(!showDetails)} className="w-full flex items-center justify-between px-4 py-3 text-sm font-semibold text-gray-700 hover:bg-gray-50">
+          <span>Project Details</span>
+          <div className="flex items-center gap-2">
+            {showDetails && (
+              <button
+                onClick={(e) => {
+                  e.stopPropagation();
+                  setIsEditFormOpen(true);
+                }}
+                className="flex gap-2 bg-blue-100 p-1 text-blue-600 hover:text-blue-800 hover:bg-blue-50 rounded transition-colors"
+                title="Edit Project"
+              >
+                <span>Edit</span>
+                <Edit2 className="w-4 h-4" />
+              </button>
+            )}
+            {showDetails ? <ChevronUp className="w-4 h-4" /> : <ChevronDown className="w-4 h-4" />}
+          </div>
+        </button>
+        {showDetails && (
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 px-4 pb-4">
+            {[{ label: 'Start Date', value: formatDate(project.startDate) }, { label: 'End Date', value: formatDate(project.endDate) }, { label: 'Budget', value: `₹${project.estimatedBudget.toLocaleString('en-IN')}` }, { label: 'Created', value: formatDate(project.createdAt) }].map(({ label, value }) => (
+              <div key={label} className="bg-gray-50 p-4 rounded-lg border">
+                <h3 className="text-xs text-gray-500 font-medium uppercase tracking-wide">{label}</h3>
+                <p className="text-lg font-semibold text-gray-800 mt-1">{value}</p>
+              </div>
+            ))}
+          </div>
+        )}
       </div>
 
       {/* Financial Overview */}
-      <div className="bg-white p-4 rounded-lg shadow-sm border border-gray-200 mb-6">
-        <h2 className="text-lg font-semibold text-gray-800 mb-3">Financial Overview</h2>
-        <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-4 gap-3">
-          <div className="bg-green-50 p-3 rounded-lg">
+      <div className="bg-white p-4 rounded-lg shadow-sm border">
+        <h2 className="text-lg font-semibold text-gray-800 mb-4">Financial Overview</h2>
+
+        <div className="grid grid-cols-2 sm:grid-cols-3 gap-4">
+          <div className="bg-green-50 p-4 rounded-lg">
             <p className="text-xs font-medium text-green-800">Total Credits</p>
-            <p className="text-xl font-bold text-green-600">
+            <p className="text-xl font-bold text-green-600 mt-1">
               ₹{totals.credits.toLocaleString('en-IN')}
             </p>
           </div>
-          <div className="bg-red-50 p-3 rounded-lg">
+
+          <div className="bg-red-50 p-4 rounded-lg">
             <p className="text-xs font-medium text-red-800">Total Debits</p>
-            <p className="text-xl font-bold text-red-600">
+            <p className="text-xl font-bold text-red-600 mt-1">
               ₹{totals.debits.toLocaleString('en-IN')}
             </p>
           </div>
-          <div className={`p-3 rounded-lg ${balance >= 0 ? 'bg-blue-50' : 'bg-yellow-50'}`}>
-            <p className="text-xs font-medium">Current Balance</p>
-            <p className={`text-xl font-bold ${balance >= 0 ? 'text-blue-600' : 'text-yellow-600'}`}>
+
+          <div className={`p-4 rounded-lg ${balance >= 0 ? 'bg-blue-50' : 'bg-yellow-50'}`}>
+            <p className="text-xs font-medium text-gray-700">Current Balance</p>
+            <p className={`text-xl font-bold mt-1 ${balance >= 0 ? 'text-blue-600' : 'text-yellow-600'}`}>
               ₹{balance.toLocaleString('en-IN')}
             </p>
-          </div>
-          <div className="bg-purple-50 p-3 rounded-lg">
-            <p className="text-xs font-medium text-purple-800">Budget Usage</p>
-            <div className="mt-1">
-              <div className="w-full bg-gray-200 rounded-full h-2">
-                <div
-                  className={`h-2 rounded-full ${budgetUsage > 90 ? 'bg-red-600' :
-                    budgetUsage > 70 ? 'bg-yellow-500' : 'bg-green-500'
-                  }`}
-                  style={{ width: `${Math.min(budgetUsage, 100)}%` }}
-                ></div>
-              </div>
-              <p className="text-lg font-bold mt-1 text-purple-600">
-                {Math.round(budgetUsage)}%
-              </p>
-            </div>
           </div>
         </div>
       </div>
 
       {/* Transactions Section */}
-      <div className="mb-6">
-        <div className="flex justify-between items-center mb-3">
+      <div className="space-y-4">
+        <div className="flex justify-between items-center">
           <h2 className="text-lg font-semibold text-gray-800">Transactions</h2>
           <div className="flex items-center gap-2">
-            <p className="text-xs text-gray-500">{projectTransactions.length} total</p>
-            <button
-              onClick={projectDownloadPDF}
-              className="flex items-center gap-1 text-sm bg-gray-100 hover:bg-gray-200 text-gray-700 px-3 py-1 rounded-md transition"
-              title="Download as PDF"
+            <p className="text-xs text-gray-500">total {projectTransactions.length}</p>
+            <PDFDownloadLink
+              document={<ProjectPDF totals={totals} project={project} transactions={projectTransactions} />}
+              fileName={`${project.title.replace(/ /g, '_')}_transactions.pdf`}
+              className="inline-flex items-center gap-1 text-sm bg-gray-100 hover:bg-gray-200 text-gray-700 px-3 py-1.5 rounded-md transition"
             >
-              <Download className="w-4 h-4" />
-              PDF
-            </button>
+              {({ loading }) => loading ? 'Generating...' : (<><Download className="w-4 h-4" /> PDF</>)}
+            </PDFDownloadLink>
           </div>
         </div>
-
-        {projectTransactions.length > 0 ? (
-          <div>
-            <div className="">
-              <TransactionTable
-                transactions={projectTransactions}
-                onDelete={handleDeleteTransaction}
-              />
-            </div>
-            
-          </div>
-        ) : (
-          <div className="bg-white p-6 rounded-lg shadow-sm border border-gray-200 text-center">
-            <p className="text-gray-500 mb-2 text-sm">No transactions yet</p>
-            <button
-              onClick={() => setIsFormOpen(true)}
-              className="text-blue-600 hover:text-blue-800 font-medium text-sm"
-            >
-              Add your first transaction
-            </button>
-          </div>
-        )}
+        <TransactionTable
+          transactions={projectTransactions}
+          onDelete={handleDeleteTransaction}
+        />
       </div>
 
-      {/* Transaction Form Modal */}
-      <Modal isOpen={isFormOpen} onClose={() => setIsFormOpen(false)} title="Add Transaction">
+      {/* Transaction Modal */}
+      <Modal
+        isOpen={isFormOpen}
+        onClose={() => setIsFormOpen(false)}
+        title="Add Transaction"
+      >
         <TransactionForm
           entityId={projectId}
           entityType="project"
@@ -361,6 +218,19 @@ const ProjectDetails = () => {
           accounts={accounts}
           onSubmit={handleAddTransaction}
           onCancel={() => setIsFormOpen(false)}
+        />
+      </Modal>
+
+      {/* Edit Project Modal */}
+      <Modal
+        isOpen={isEditFormOpen}
+        onClose={() => setIsEditFormOpen(false)}
+        title="Edit Project"
+      >
+        <ProjectEditForm
+          project={project}
+          onSubmit={handleEditProject}
+          onCancel={() => setIsEditFormOpen(false)}
         />
       </Modal>
     </div>

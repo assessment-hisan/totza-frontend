@@ -7,7 +7,8 @@ import { ArrowLeft, Edit, PlusCircle, Download, Trash2 } from 'lucide-react';
 import VendorForm from './VendorForm';
 import TransactionForm from '../TransactionForm';
 import { jsPDF } from 'jspdf';
-
+import VendorPDF from '../pdf/VendorPdf';
+import { PDFDownloadLink } from '@react-pdf/renderer';
 const VendorDetail = () => {
   const { vendorId } = useParams();
   const navigate = useNavigate();
@@ -24,10 +25,11 @@ const VendorDetail = () => {
       setLoading(true);
       const [vendorRes, transactionsRes] = await Promise.all([
         axiosInstance.get(`vendor/${vendorId}`),
-        axiosInstance.get(`company?vendor=${vendorId}`)
+        axiosInstance.get(`vendor/transactions?vendor=${vendorId}`)
       ]);
+      console.log(vendorRes.data)
       setVendor(vendorRes.data);
-      setTransactions(transactionsRes.data || []);
+      setTransactions(transactionsRes.data.transactions || []);
       console.log(transactionsRes)
     } catch (err) {
       setError(err.response?.data?.message || 'Failed to load vendor data');
@@ -269,19 +271,36 @@ const VendorDetail = () => {
             <h2 className="text-lg font-semibold text-gray-800">Transactions</h2>
             <div className="flex items-center gap-2">
               <p className="text-xs text-gray-500">{vendorTransactions.length} total</p>
-              <button
-                onClick={vendordownloadPDF}
-                className="flex items-center gap-1 text-sm bg-gray-100 hover:bg-gray-200 text-gray-700 px-3 py-1 rounded-md transition"
-                title="Download as PDF"
+              <PDFDownloadLink
+                document={
+                  <VendorPDF
+                    vendor={vendor}
+                    transactions={vendorTransactions}
+                    totals={totals}
+                    balance={balance}
+                  />
+                }
+                fileName={`${vendor.companyName.replace(/\\s+/g, '_')}_report.pdf`}
+                 className="inline-flex items-center gap-1 text-sm bg-gray-100 hover:bg-gray-200 text-gray-700 px-3 py-1.5 rounded-md transition"
               >
-                <Download className="w-4 h-4" />
-                PDF
-              </button>
+                {({ loading }) => (loading ? 'Generating...' :  (<><Download className="w-4 h-4" /> PDF</>))}
+              </PDFDownloadLink>
+
             </div>
           </div>
-
-          <div id="transactions-pdf" className="overflow-hidden rounded-xl border border-gray-200 bg-white shadow-sm">
-            <table className="w-full divide-y divide-gray-200">
+              {vendorTransactions.length === 0 ? (
+          <div className="bg-white border border-gray-200 p-6 rounded-lg text-center text-gray-500">
+            <p className="mb-4">No transactions found for this vendor.</p>
+            <button
+              onClick={() => setIsModalOpen(true)}
+              className="inline-flex items-center gap-2 bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded-md"
+            >
+              <PlusCircle className="w-4 h-4" /> Add Transaction
+            </button>
+          </div>
+        ) : (
+          <div id="transactions-pdf" className="overflow-auto rounded-xl border border-gray-200 bg-white shadow-sm">
+             <table className="w-full divide-y divide-gray-200">
               <thead className="bg-gradient-to-r from-gray-50 to-gray-100">
                 <tr>
                   <th className="px-6 py-3 text-left text-xs font-medium text-gray-700 uppercase tracking-wider">Date</th>
@@ -337,7 +356,7 @@ const VendorDetail = () => {
                         className="text-red-600 hover:text-red-800 text-sm"
                         title="Delete Transaction"
                       >
-                        <Trash2/>
+                        <Trash2 />
                       </button>
                     </td>
 
@@ -346,6 +365,8 @@ const VendorDetail = () => {
               </tbody>
             </table>
           </div>
+        )}
+       
         </div>
 
         {/* Add Transaction Modal */}

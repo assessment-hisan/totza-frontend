@@ -2,7 +2,7 @@ import React, { useState, useEffect } from 'react';
 import axiosInstance from '../../utils/axiosInstance';
 import { Loader, AlertCircle } from 'lucide-react';
 
-const WorkerForm = ({ onClose, refreshWorkers }) => {
+const WorkerForm = ({ initialData, onClose, refreshWorkers, isEditing = false, onSubmit }) => {
   const [formData, setFormData] = useState({
     name: '',
     contactNumber: '',
@@ -11,22 +11,23 @@ const WorkerForm = ({ onClose, refreshWorkers }) => {
     dailyWage: '',
   });
 
-  const [projects, setProjects] = useState([]);
   const [errors, setErrors] = useState({});
   const [loading, setLoading] = useState(false);
 
-  // useEffect(() => {
-  //   const fetchProjects = async () => {
-  //     try {
-  //       const res = await axiosInstance.get('project');
-  //       setProjects(res.data);
-  //     } catch (error) {
-  //       console.error('Error fetching projects:', error);
-  //     }
-  //   };
-  //   fetchProjects();
-  // }, []);
+  // Initialize form data with initial data if provided (for editing)
+  useEffect(() => {
+    if (initialData && isEditing) {
+      setFormData({
+        name: initialData.name || '',
+        contactNumber: initialData.contactNumber || '',
+        address: initialData.address || '',
+        role: initialData.role || 'Laborer',
+        dailyWage: initialData.dailyWage || '',
+      });
+    }
+  }, [initialData, isEditing]);
 
+  // Validation useEffect
   useEffect(() => {
     const newErrors = {};
     
@@ -36,7 +37,6 @@ const WorkerForm = ({ onClose, refreshWorkers }) => {
     if (!formData.dailyWage || Number(formData.dailyWage) <= 0) {
       newErrors.dailyWage = 'Daily wage must be positive';
     }
-    
 
     setErrors(newErrors);
   }, [formData]);
@@ -48,11 +48,32 @@ const WorkerForm = ({ onClose, refreshWorkers }) => {
 
     try {
       setLoading(true);
-      await axiosInstance.post('worker', formData);
-      refreshWorkers();
-      onClose();
+      
+      if (isEditing) {
+        // FIXED: Check for proper ID and use onSubmit if provided
+        if (!initialData?._id) {
+          throw new Error('Worker ID is missing');
+        }
+
+        if (onSubmit) {
+          // Use passed onSubmit function for editing
+          await onSubmit(formData);
+        } else {
+          // FIXED: Use _id instead of id
+          await axiosInstance.put(`worker/${initialData._id}`, formData);
+          refreshWorkers();
+          onClose();
+        }
+      } else {
+        // Create new worker
+        await axiosInstance.post('worker', formData);
+        refreshWorkers();
+        onClose();
+      }
     } catch (error) {
-      console.error('Error creating worker:', error);
+      console.error(`Error ${isEditing ? 'updating' : 'creating'} worker:`, error);
+      // Set error for user feedback
+      setErrors({ submit: error.message || `Failed to ${isEditing ? 'update' : 'create'} worker` });
     } finally {
       setLoading(false);
     }
@@ -64,6 +85,13 @@ const WorkerForm = ({ onClose, refreshWorkers }) => {
 
   return (
     <form onSubmit={handleSubmit} className="space-y-4 p-6">
+      {/* Show submit errors */}
+      {errors.submit && (
+        <div className="bg-red-100 border border-red-400 text-red-700 px-4 py-3 rounded mb-4">
+          {errors.submit}
+        </div>
+      )}
+
       <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
         {/* Name */}
         <div>
@@ -184,8 +212,6 @@ const WorkerForm = ({ onClose, refreshWorkers }) => {
         </div>
       </div>
 
-      
-
       {/* Form Actions */}
       <div className="flex justify-end gap-3 pt-4">
         <button
@@ -197,15 +223,15 @@ const WorkerForm = ({ onClose, refreshWorkers }) => {
         </button>
         <button
           type="submit"
-          disabled={loading}
+          disabled={loading || Object.keys(errors).length > 0}
           className={`px-4 py-2 rounded-md transition-colors flex items-center gap-2 ${
             loading || Object.keys(errors).length > 0
-              ? 'bg-blue-400 cursor-not-allowed'
+              ? 'bg-blue-400 cursor-not-allowed text-white'
               : 'bg-blue-600 hover:bg-blue-700 text-white'
           }`}
         >
           {loading && <Loader className="w-4 h-4 animate-spin" />}
-          Add Worker
+          {isEditing ? 'Update Worker' : 'Add Worker'}
         </button>
       </div>
     </form>

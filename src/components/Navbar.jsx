@@ -25,18 +25,18 @@ const Navbar = ({ userInfo }) => {
   };
 
   return (
-    <div className="w-full flex justify-between items-center bg-white p-4 shadow-md rounded">
+    <div className="w-full flex justify-between items-center bg-white px-4 py-2 shadow-md rounded">
       <div className="flex items-center gap-6">
         <h1 className="text-2xl font-semibold">Totza</h1>
       </div>
-      <div className='flex  lg:gap-10'>
+      <div className='flex gap-5 lg:gap-10'>
         {/* Personal Transactions Link */}
         <button
           onClick={goToPersonalTransactions}
           className="flex items-center gap-2 text-sm font-medium text-gray-700 hover:text-blue-600 transition"
         >
           <FaWallet className="text-lg" />
-          <span>Personal Transactions</span>
+          <span className='hidden md:block'>Personal Transactions</span>
         </button>
 
         {/* User Info & Dropdown */}
@@ -49,7 +49,7 @@ const Navbar = ({ userInfo }) => {
             <div className="w-8 h-8 px-5 bg-blue-500 rounded-full flex items-center justify-center text-xl text-white font-bold">
               {getInitials(userInfo.fullName)}
             </div>
-            <span className="text-sm uppercase">{userInfo.fullName}</span>
+            <span className="hidden md:block text-sm uppercase">{userInfo.fullName}</span>
           </button>
 
           {dropdownOpen && (

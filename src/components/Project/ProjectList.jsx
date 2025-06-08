@@ -64,7 +64,7 @@ const ProjectsList = () => {
     <div className="p-6 max-w-6xl mx-auto">
       {/* Header */}
       <div className="flex justify-between items-center mb-8">
-        <h1 className="text-3xl font-bold text-gray-800">Your Projects</h1>
+        <h1 className="text-3xl font-bold text-gray-800"> Projects</h1>
         <button
           onClick={() => setIsModalOpen(true)}
           className="flex items-center gap-2 bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded-lg transition-all"
